@@ -667,21 +667,6 @@ whose location varies by OS (most commonly ``/etc/sysconfig/pacemaker`` or
 
        *(Deprecated since 3.0.2)*
 
-   * - .. _pcmk_ipc_type:
-
-       .. index::
-          pair: node option; PCMK_ipc_type
-
-       PCMK_ipc_type
-     - :ref:`enumeration <enumeration>`
-     - shared-mem
-     - *Advanced Use Only:* Force use of a particular IPC method. Allowed values:
-
-       * ``shared-mem``
-       * ``socket``
-       * ``posix``
-       * ``sysv``
-
    * - .. _pcmk_cluster_type:
 
        .. index::
