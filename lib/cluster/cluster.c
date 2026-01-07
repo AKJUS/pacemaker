@@ -117,6 +117,10 @@ pcmk_cluster_disconnect(pcmk_cluster_t *cluster)
     const enum pcmk_cluster_layer cluster_layer = pcmk_get_cluster_layer();
     const char *cluster_layer_s = pcmk_cluster_layer_text(cluster_layer);
 
+    if (cluster == NULL) {
+        return EINVAL;
+    }
+
     /* @TODO Either decouple this from cluster disconnection, or move the caches
      * to pcmk_cluster_t as suggested in comments in membership.c.
      */
