@@ -331,6 +331,7 @@ main(int argc, char **argv)
     }
 
     pcmk__cluster_init_node_caches();
+    based_callbacks_init();
     based_io_init();
 
     /* Read initial CIB. based_read_cib() returns new, non-NULL XML, so this
