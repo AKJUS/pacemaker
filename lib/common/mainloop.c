@@ -647,20 +647,6 @@ mainloop_del_ipc_server(qb_ipcs_service_t * server)
     }
 }
 
-struct mainloop_io_s {
-    char *name;
-    void *userdata;
-
-    int fd;
-    unsigned int source;
-    crm_ipc_t *ipc;
-    GIOChannel *channel;
-
-    int (*dispatch_fn_ipc)(const char *buffer, ssize_t length, void *userdata);
-    int (*dispatch_fn_io)(void *userdata);
-    void (*destroy_fn)(void *userdata);
-};
-
 /*!
  * \internal
  * \brief I/O watch callback function (GIOFunc)
