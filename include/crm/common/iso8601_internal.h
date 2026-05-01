@@ -81,10 +81,14 @@ enum pcmk__time_fmt_flags {
 
     // @COMPAT Nothing sets this internally except tools/iso8601.c (deprecated)
     /*!
-     * If \c pcmk__time_fmt_date is set and \c crm_time_weeks is not set, format
-     * date as YYYY-DDD
+     * If \c pcmk__time_fmt_date is set and \c pcmk__time_fmt_weeks is not set,
+     * format date as YYYY-DDD
      */
     pcmk__time_fmt_ordinal  = (UINT32_C(1) << 4),
+
+    // @COMPAT Nothing sets this internally except tools/iso8601.c (deprecated)
+    //! If \c pcmk__time_fmt_date is set, format date as YYYY-WW-D
+    pcmk__time_fmt_weeks    = (UINT32_C(1) << 5),
 };
 
 bool pcmk__time_valid_year(int year);
