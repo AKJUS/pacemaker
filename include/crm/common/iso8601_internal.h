@@ -64,8 +64,8 @@ enum pcmk__time_fmt_flags {
      *   * MINUTES minute(s)
      *   * SECONDS[.UUUUUU] second(s)
      *
-     * \note This flag causes all other flags except \c crm_time_usecs to be
-     *       ignored.
+     * \note This flag causes all other flags except \c pcmk__time_fmt_usecs to
+     *       be ignored.
      * \note Negative fields may be formatted incorrectly or confusingly. A
      *       duration should not really have negative fields, but they are
      *       allowed.
@@ -74,8 +74,9 @@ enum pcmk__time_fmt_flags {
      * \note Fields with zero values are omitted, with the following exceptions:
      *       * If there are no nonzero date fields, the seconds field is
      *         formatted with a value of zero (plus usecs if requested).
-     *       * Usecs are included if and only if the \c crm_time_usecs flag is
-     *         set and either seconds will be formatted or usecs is nonzero.
+     *       * Usecs are included if and only if the \c pcmk__time_fmt_usecs
+     *         flag is set and either seconds will be formatted or usecs is
+     *         nonzero.
      */
     pcmk__time_fmt_duration = (UINT32_C(1) << 3),
 
@@ -94,10 +95,10 @@ enum pcmk__time_fmt_flags {
     /*!
      * Format the \c crm_time_t object as the number of seconds since
      * 0001-01-01T00:00:00. The output is in the format SECONDS[.UUUUUU], where
-     * usecs are included if and only if \c crm_time_usecs is set.
+     * usecs are included if and only if \c pcmk__time_fmt_usecs is set.
      *
      * \note This flag causes all other flags except \c pcmk__time_fmt_duration
-     *       and \c crm_time_usecs to be ignored.
+     *       and \c pcmk__time_fmt_usecs to be ignored.
      * \note If the \c crm_time_t object is a duration, then all years are
      *       treated as having 365 days and all months are treated as having 30
      *       days, for the purpose of computing the number of seconds.
@@ -109,15 +110,22 @@ enum pcmk__time_fmt_flags {
      * Format the \c crm_time_t object as the number of seconds since
      * 1970-01-01T00:00:00 (the Unix epoch). The output is in the format
      * SECONDS[.UUUUUU], where usecs are included if and only if
-     * \c crm_time_usecs is set.
+     * \c pcmk__time_fmt_usecs is set.
      *
      * \note This flag causes all other flags except \c pcmk__time_fmt_duration,
-     *       \c pcmk__time_fmt_seconds, and \c crm_time_usecs to be ignored.
+     *       \c pcmk__time_fmt_seconds, and \c pcmk__time_fmt_usecs to be
+     *       ignored.
      * \note If the \c crm_time_t object is a duration, then all years are
      *       treated as having 365 days and all months are treated as having 30
      *       days, for the purpose of computing the number of seconds.
      */
     pcmk__time_fmt_epoch    = (UINT32_C(1) << 9),
+
+    /*!
+     * Format seconds as a floating-point value at microsecond resolution. If
+     * not set, seconds are truncated to an integer.
+     */
+    pcmk__time_fmt_usecs    = (UINT32_C(1) << 10),
 };
 
 bool pcmk__time_valid_year(int year);
