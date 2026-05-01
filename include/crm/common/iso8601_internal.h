@@ -50,6 +50,34 @@ enum pcmk__time_fmt_flags {
      * the time zone nor 'Z' is included.
      */
     pcmk__time_fmt_timezone = (UINT32_C(1) << 2),
+
+    // @COMPAT Nothing sets this internally except tools/iso8601.c (deprecated)
+    /*!
+     * Format the \c crm_time_t object as a duration. The output contains the
+     * following fields:
+     * * YYYY year(s)
+     * * MM month(s)
+     * * DD day(s)
+     * * SECONDS[.UUUUUU] second(s)
+     * * If SECONDS >= 60, then the following fields in parentheses:
+     *   * HOURS hour(s)
+     *   * MINUTES minute(s)
+     *   * SECONDS[.UUUUUU] second(s)
+     *
+     * \note This flag causes all other flags except \c crm_time_usecs to be
+     *       ignored.
+     * \note Negative fields may be formatted incorrectly or confusingly. A
+     *       duration should not really have negative fields, but they are
+     *       allowed.
+     * \note The fields are separated by spaces.
+     * \note Years, months, and days are space-padded on the left.
+     * \note Fields with zero values are omitted, with the following exceptions:
+     *       * If there are no nonzero date fields, the seconds field is
+     *         formatted with a value of zero (plus usecs if requested).
+     *       * Usecs are included if and only if the \c crm_time_usecs flag is
+     *         set and either seconds will be formatted or usecs is nonzero.
+     */
+    pcmk__time_fmt_duration = (UINT32_C(1) << 3),
 };
 
 bool pcmk__time_valid_year(int year);
