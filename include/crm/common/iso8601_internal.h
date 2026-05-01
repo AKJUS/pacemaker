@@ -39,6 +39,17 @@ enum pcmk__time_fmt_flags {
 
     //! Include time (as HH:MM:SS[.UUUUUU]('Z'| ('+'|'-')HH:MM))
     pcmk__time_fmt_time     = (UINT32_C(1) << 1),
+
+    /*!
+     * If \c pcmk__time_fmt_time is set:
+     * * If this flag is set and \c offset is not 0, include time zone as offset
+     *   from UTC ( ('+'|'-')HH:MM).
+     * * Otherwise, include 'Z'.
+     *
+     * If \c pcmk__time_fmt_time is not set, this flag is ignored and neither
+     * the time zone nor 'Z' is included.
+     */
+    pcmk__time_fmt_timezone = (UINT32_C(1) << 2),
 };
 
 bool pcmk__time_valid_year(int year);
