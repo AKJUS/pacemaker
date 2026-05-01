@@ -733,7 +733,14 @@ pcmk__time_get_timeofday(const crm_time_t *dt, uint32_t *hours,
     seconds_to_hms(dt->seconds, hours, minutes, seconds);
 }
 
-// Time in seconds since 0000-01-01 00:00:00Z
+/*
+ * \internal
+ * \brief Convert a time object to seconds since 0000-01-01 00:00:00Z
+ *
+ * \param[in] dt  Time object
+ *
+ * \return Number of seconds between 0001-01-01 00:00:00Z and \p dt
+ */
 long long
 pcmk__time_get_seconds(const crm_time_t *dt)
 {
@@ -777,11 +784,37 @@ pcmk__time_get_seconds(const crm_time_t *dt)
     return seconds;
 }
 
-#define EPOCH_SECONDS 62135596800ULL // Calculated using pcmk__time_get_seconds
+/*
+ * \internal
+ * \brief Convert a time object to seconds since the Unix epoch
+ *
+ * \param[in] dt  Time object
+ *
+ * \return Number of seconds between 1970-01-01 00:00:00Z and \p dt
+ */
+long long
+pcmk__time_to_unix(const crm_time_t *dt)
+{
+    static long long epoch_seconds = 0;
+
+    if (dt == NULL) {
+        return 0;
+    }
+
+    if (epoch_seconds == 0) {
+        crm_time_t *epoch_dt = crm_time_new("1970-01-01 00:00:00Z");
+
+        epoch_seconds = pcmk__time_get_seconds(epoch_dt);
+        free(epoch_dt);
+    }
+
+    return pcmk__time_get_seconds(dt) - epoch_seconds;
+}
+
 long long
 crm_time_get_seconds_since_epoch(const crm_time_t *dt)
 {
-    return (dt == NULL)? 0 : (pcmk__time_get_seconds(dt) - EPOCH_SECONDS);
+    return pcmk__time_to_unix(dt);
 }
 
 /*!
@@ -1047,7 +1080,7 @@ time_as_string_common(const crm_time_t *dt, int usec, uint32_t flags)
         if (pcmk__is_set(flags, pcmk__time_fmt_seconds)) {
             seconds = pcmk__time_get_seconds(dt);
         } else {
-            seconds = crm_time_get_seconds_since_epoch(dt);
+            seconds = pcmk__time_to_unix(dt);
         }
 
         if (pcmk__is_set(flags, pcmk__time_fmt_usecs)) {
