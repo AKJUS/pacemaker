@@ -26,6 +26,18 @@
 extern "C" {
 #endif
 
+/* @COMPAT These must be kept in line with the deprecated crm_time_* flags until
+ * those are removed
+ */
+/*!
+ * \internal
+ * \brief Flags for formatting a \c crm_time_t object as a string
+ */
+enum pcmk__time_fmt_flags {
+    //! Include date (as YYYY-WW-D, YYYY-DDD, or YYYY-MM-DD (default))
+    pcmk__time_fmt_date     = (UINT32_C(1) << 0),
+};
+
 bool pcmk__time_valid_year(int year);
 bool pcmk__time_is_initialized(const crm_time_t *dt);
 void pcmk__time_get_ywd(const crm_time_t *dt, uint32_t *y, uint32_t *w,
