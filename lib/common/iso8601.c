@@ -811,12 +811,6 @@ pcmk__time_to_unix(const crm_time_t *dt)
     return pcmk__time_get_seconds(dt) - epoch_seconds;
 }
 
-long long
-crm_time_get_seconds_since_epoch(const crm_time_t *dt)
-{
-    return pcmk__time_to_unix(dt);
-}
-
 /*!
  * \internal
  * \brief Convert a time object's years and seconds to year, month, and day
@@ -2569,6 +2563,12 @@ long long
 crm_time_get_seconds(const crm_time_t *dt)
 {
     return pcmk__time_get_seconds(dt);
+}
+
+long long
+crm_time_get_seconds_since_epoch(const crm_time_t *dt)
+{
+    return pcmk__time_to_unix(dt);
 }
 
 // LCOV_EXCL_STOP
