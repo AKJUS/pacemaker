@@ -610,7 +610,7 @@ parse_time_segment:
     return dt;
 
 invalid:
-    crm_time_free(dt);
+    free(dt);
     errno = EINVAL;
     return NULL;
 }
@@ -780,7 +780,7 @@ pcmk__time_get_seconds(const crm_time_t *dt)
 
     seconds = dt->seconds + (SECONDS_IN_DAY * days);
 
-    crm_time_free(utc);
+    free(utc);
     return seconds;
 }
 
@@ -1147,7 +1147,7 @@ time_as_string_common(const crm_time_t *dt, int usec, uint32_t flags)
     }
 
 done:
-    crm_time_free(utc);
+    free(utc);
     result = pcmk__str_copy(buf->str);
     g_string_free(buf, TRUE);
     return result;
@@ -1331,8 +1331,7 @@ parse_duration_element(const char **element, const char *duration_s,
  *                      ignored)
  *
  * \return New time object on success, or \c NULL (and set \c errno) otherwise
- * \note It is the caller's responsibility to free the result using
- *       \c crm_time_free().
+ * \note It is the caller's responsibility to free the result using \c free().
  */
 crm_time_t *
 pcmk__time_parse_duration(const char *period_s)
@@ -1393,7 +1392,7 @@ invalid:
     /* @COMPAT Setting errno is required only for backward compatibility with
      * crm_time_parse_duration()
      */
-    crm_time_free(diff);
+    free(diff);
     errno = EINVAL;
     return NULL;
 }
@@ -1442,8 +1441,7 @@ pcmk_copy_time(const crm_time_t *source)
  *
  * \return Newly allocated \c crm_time_t object representing \p source_sec
  *
- * \note The caller is responsible for freeing the return value using
- *       \c crm_time_free().
+ * \note The caller is responsible for freeing the return value using \c free().
  */
 crm_time_t *
 pcmk__copy_timet(time_t source_sec)
@@ -1509,7 +1507,7 @@ crm_time_add(const crm_time_t *dt, const crm_time_t *value)
     crm_time_add_days(answer, utc->days);
     crm_time_add_seconds(answer, utc->seconds);
 
-    crm_time_free(utc);
+    free(utc);
     return answer;
 }
 
@@ -1675,7 +1673,7 @@ subtract_time(const crm_time_t *dt1, const crm_time_t *dt2, bool as_duration)
     }
     crm_time_add_seconds(result, -utc->seconds);
 
-    crm_time_free(utc);
+    free(utc);
     return result;
 }
 
@@ -1768,8 +1766,8 @@ pcmk__time_compare(const crm_time_t *time1, const crm_time_t *time2)
                 utc1->years, utc1->days, utc1->seconds);
 
 done:
-    crm_time_free(utc1);
-    crm_time_free(utc2);
+    free(utc1);
+    free(utc2);
     return rc;
 }
 
@@ -2196,7 +2194,7 @@ pcmk__epoch2str(const time_t *source, uint32_t flags)
     dt = pcmk__copy_timet(epoch_time);
     result = pcmk__time_text(dt, flags);
 
-    crm_time_free(dt);
+    free(dt);
     return result;
 }
 
@@ -2232,7 +2230,7 @@ pcmk__timespec2str(const struct timespec *ts, uint32_t flags)
     dt = pcmk__copy_timet(ts->tv_sec);
     result = time_as_string_common(dt, ts->tv_nsec / QB_TIME_NS_IN_USEC, flags);
 
-    crm_time_free(dt);
+    free(dt);
     return result;
 }
 
@@ -2371,7 +2369,7 @@ crm_time_set_timet(crm_time_t *target, const time_t *source_sec)
 
     source = pcmk__copy_timet(*source_sec);
     *target = *source;
-    crm_time_free(source);
+    free(source);
 }
 
 int
@@ -2398,9 +2396,9 @@ void
 crm_time_free_period(crm_time_period_t *period)
 {
     if (period) {
-        crm_time_free(period->start);
-        crm_time_free(period->end);
-        crm_time_free(period->diff);
+        free(period->start);
+        free(period->end);
+        free(period->diff);
         free(period);
     }
 }
