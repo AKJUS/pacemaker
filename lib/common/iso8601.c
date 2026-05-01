@@ -662,6 +662,31 @@ crm_time_new(const char *date_time)
 }
 
 /*!
+ * \internal
+ * \brief Copy a time object
+ *
+ * \param[in] source  Time object
+ *
+ * \return Newly allocated copy of \p source, or \c NULL if \p source is \c NULL
+ *
+ * \note The caller is responsible for freeing the return value using \c free().
+ */
+crm_time_t *
+pcmk__time_copy(const crm_time_t *source)
+{
+    crm_time_t *target = NULL;
+
+    if (source == NULL) {
+        return NULL;
+    }
+
+    target = pcmk__assert_alloc(1, sizeof(crm_time_t));
+    *target = *source;
+    return target;
+}
+
+/*!
+ * \internal
  * \brief Check whether a time object has been initialized yet
  *
  * \param[in] dt  Time object to check
@@ -1418,15 +1443,7 @@ pcmk__set_time_if_earlier(crm_time_t *target, const crm_time_t *source)
 crm_time_t *
 pcmk_copy_time(const crm_time_t *source)
 {
-    crm_time_t *target = NULL;
-
-    if (source == NULL) {
-        return NULL;
-    }
-
-    target = pcmk__assert_alloc(1, sizeof(crm_time_t));
-    *target = *source;
-    return target;
+    return pcmk__time_copy(source);
 }
 
 /*!
@@ -1495,7 +1512,7 @@ crm_time_add(const crm_time_t *dt, const crm_time_t *value)
         return NULL;
     }
 
-    answer = pcmk_copy_time(dt);
+    answer = pcmk__time_copy(dt);
     utc = copy_time_to_utc(value);
 
     crm_time_add_years(answer, utc->years);
@@ -1638,7 +1655,7 @@ subtract_time(const crm_time_t *dt1, const crm_time_t *dt2, bool as_duration)
         return NULL;
     }
 
-    result = (as_duration? copy_time_to_utc(dt1) : pcmk_copy_time(dt1));
+    result = (as_duration? copy_time_to_utc(dt1) : pcmk__time_copy(dt1));
     result->duration = as_duration;
 
     utc = copy_time_to_utc(dt2);
