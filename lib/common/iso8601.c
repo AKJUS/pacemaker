@@ -1641,6 +1641,25 @@ pcmk__time_component_attr(enum pcmk__time_component component)
 
 /*!
  * \internal
+ * \brief Add a given number of weeks to a time object
+ *
+ * \param[in,out] dt     Time object
+ * \param[in]     value  Number of weeks to add (can be negative to subtract)
+ */
+static void
+add_weeks(crm_time_t *dt, int value)
+{
+    for (; value > 0; value--) {
+        pcmk__time_add_days(dt, DAYS_IN_WEEK);
+    }
+
+    for (; value < 0; value++) {
+        pcmk__time_add_days(dt, -DAYS_IN_WEEK);
+    }
+}
+
+/*!
+ * \internal
  * \brief Add a given number of hours to a time object
  *
  * \param[in,out] dt     Time object
@@ -1698,7 +1717,7 @@ component_fn(enum pcmk__time_component component)
             return crm_time_add_months;
 
         case pcmk__time_weeks:
-            return crm_time_add_weeks;
+            return add_weeks;
 
         case pcmk__time_days:
             return pcmk__time_add_days;
@@ -1715,7 +1734,6 @@ component_fn(enum pcmk__time_component component)
         default:
             return NULL;
     }
-
 }
 
 /*!
@@ -1946,18 +1964,6 @@ crm_time_add_months(crm_time_t *dt, int value)
 
     dt->years = year;
     dt->days = get_ordinal_days(year, month, day);
-}
-
-void
-crm_time_add_weeks(crm_time_t *dt, int value)
-{
-    for (; value > 0; value--) {
-        pcmk__time_add_days(dt, DAYS_IN_WEEK);
-    }
-
-    for (; value < 0; value++) {
-        pcmk__time_add_days(dt, -DAYS_IN_WEEK);
-    }
 }
 
 void
@@ -2693,6 +2699,12 @@ void
 crm_time_add_days(crm_time_t *dt, int value)
 {
     pcmk__time_add_days(dt, value);
+}
+
+void
+crm_time_add_weeks(crm_time_t *dt, int value)
+{
+    add_weeks(dt, value);
 }
 
 // LCOV_EXCL_STOP
