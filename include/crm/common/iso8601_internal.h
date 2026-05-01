@@ -78,6 +78,13 @@ enum pcmk__time_fmt_flags {
      *         set and either seconds will be formatted or usecs is nonzero.
      */
     pcmk__time_fmt_duration = (UINT32_C(1) << 3),
+
+    // @COMPAT Nothing sets this internally except tools/iso8601.c (deprecated)
+    /*!
+     * If \c pcmk__time_fmt_date is set and \c crm_time_weeks is not set, format
+     * date as YYYY-DDD
+     */
+    pcmk__time_fmt_ordinal  = (UINT32_C(1) << 4),
 };
 
 bool pcmk__time_valid_year(int year);
