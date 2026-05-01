@@ -36,6 +36,9 @@ extern "C" {
 enum pcmk__time_fmt_flags {
     //! Include date (as YYYY-WW-D, YYYY-DDD, or YYYY-MM-DD (default))
     pcmk__time_fmt_date     = (UINT32_C(1) << 0),
+
+    //! Include time (as HH:MM:SS[.UUUUUU]('Z'| ('+'|'-')HH:MM))
+    pcmk__time_fmt_time     = (UINT32_C(1) << 1),
 };
 
 bool pcmk__time_valid_year(int year);
