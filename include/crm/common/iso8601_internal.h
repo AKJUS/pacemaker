@@ -89,6 +89,20 @@ enum pcmk__time_fmt_flags {
     // @COMPAT Nothing sets this internally except tools/iso8601.c (deprecated)
     //! If \c pcmk__time_fmt_date is set, format date as YYYY-WW-D
     pcmk__time_fmt_weeks    = (UINT32_C(1) << 5),
+
+    // @COMPAT Nothing sets this internally except tools/iso8601.c (deprecated)
+    /*!
+     * Format the \c crm_time_t object as the number of seconds since
+     * 0001-01-01T00:00:00. The output is in the format SECONDS[.UUUUUU], where
+     * usecs are included if and only if \c crm_time_usecs is set.
+     *
+     * \note This flag causes all other flags except \c pcmk__time_fmt_duration
+     *       and \c crm_time_usecs to be ignored.
+     * \note If the \c crm_time_t object is a duration, then all years are
+     *       treated as having 365 days and all months are treated as having 30
+     *       days, for the purpose of computing the number of seconds.
+     */
+    pcmk__time_fmt_seconds  = (UINT32_C(1) << 8),
 };
 
 bool pcmk__time_valid_year(int year);
