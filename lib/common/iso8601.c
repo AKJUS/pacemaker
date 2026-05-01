@@ -1495,16 +1495,27 @@ pcmk__copy_timet(time_t source_sec)
     return target;
 }
 
+/*!
+ * \internal
+ * \brief Add one time object to another and return the sum
+ *
+ * \param[in] dt     Time object to add to
+ * \param[in] value  Value to add to \p dt
+ *
+ * \return Newly allocated sum of \p dt and \p value
+ *
+ * \note The caller is responsible for freeing the return value using \c free().
+ * \note \p dt is treated as a date/time, while \p value is treated as a
+ *       duration. Adding two dates is an ill-defined operation, though it
+ *       allowed.
+ */
 crm_time_t *
-crm_time_add(const crm_time_t *dt, const crm_time_t *value)
+pcmk__time_add(const crm_time_t *dt, const crm_time_t *value)
 {
     crm_time_t *utc = NULL;
     crm_time_t *answer = NULL;
 
-    if ((dt == NULL) || (value == NULL)) {
-        errno = EINVAL;
-        return NULL;
-    }
+    pcmk__assert((dt != NULL) && (value != NULL));
 
     answer = pcmk__time_copy(dt);
     utc = copy_time_to_utc(value);
@@ -1516,6 +1527,17 @@ crm_time_add(const crm_time_t *dt, const crm_time_t *value)
 
     free(utc);
     return answer;
+}
+
+crm_time_t *
+crm_time_add(const crm_time_t *dt, const crm_time_t *value)
+{
+    if ((dt == NULL) || (value == NULL)) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    return pcmk__time_add(dt, value);
 }
 
 /*!
@@ -2473,7 +2495,7 @@ crm_time_parse_period(const char *period_str)
         period->start = crm_time_subtract(period->end, period->diff);
 
     } else if (period->end == NULL) {
-        period->end = crm_time_add(period->start, period->diff);
+        period->end = pcmk__time_add(period->start, period->diff);
     }
 
     if (!pcmk__time_valid_year(period->start->years)
