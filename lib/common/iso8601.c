@@ -1599,6 +1599,25 @@ pcmk__time_component_attr(enum pcmk__time_component component)
 
 /*!
  * \internal
+ * \brief Add a given number of hours to a time object
+ *
+ * \param[in,out] dt     Time object
+ * \param[in]     value  Number of hours to add (can be negative to subtract)
+ */
+static void
+add_hours(crm_time_t *dt, int value)
+{
+    for (; value > 0; value--) {
+        pcmk__time_add_seconds(dt, SECONDS_IN_HOUR);
+    }
+
+    for (; value < 0; value++) {
+        pcmk__time_add_seconds(dt, -SECONDS_IN_HOUR);
+    }
+}
+
+/*!
+ * \internal
  * \brief Add a given number of minutes to a time object
  *
  * \param[in,out] dt     Time object
@@ -1643,7 +1662,7 @@ component_fn(enum pcmk__time_component component)
             return crm_time_add_days;
 
         case pcmk__time_hours:
-            return crm_time_add_hours;
+            return add_hours;
 
         case pcmk__time_minutes:
             return add_minutes;
@@ -1923,18 +1942,6 @@ crm_time_add_months(crm_time_t *dt, int value)
 
     dt->years = year;
     dt->days = get_ordinal_days(year, month, day);
-}
-
-void
-crm_time_add_hours(crm_time_t *dt, int value)
-{
-    for (; value > 0; value--) {
-        pcmk__time_add_seconds(dt, SECONDS_IN_HOUR);
-    }
-
-    for (; value < 0; value++) {
-        pcmk__time_add_seconds(dt, -SECONDS_IN_HOUR);
-    }
 }
 
 void
@@ -2664,6 +2671,12 @@ void
 crm_time_add_minutes(crm_time_t *dt, int value)
 {
     add_minutes(dt, value);
+}
+
+void
+crm_time_add_hours(crm_time_t *dt, int value)
+{
+    add_hours(dt, value);
 }
 
 // LCOV_EXCL_STOP
