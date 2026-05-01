@@ -1712,17 +1712,6 @@ pcmk__time_subtract(const crm_time_t *dt, const crm_time_t *value)
     return subtract_time(dt, value, false);
 }
 
-crm_time_t *
-crm_time_subtract(const crm_time_t *dt, const crm_time_t *value)
-{
-    if ((dt == NULL) || (value == NULL)) {
-        errno = EINVAL;
-        return NULL;
-    }
-
-    return pcmk__time_subtract(dt, value);
-}
-
 /*!
  * \internal
  * \brief Compare two time objects
@@ -2635,6 +2624,17 @@ crm_time_add(const crm_time_t *dt, const crm_time_t *value)
     }
 
     return pcmk__time_add(dt, value);
+}
+
+crm_time_t *
+crm_time_subtract(const crm_time_t *dt, const crm_time_t *value)
+{
+    if ((dt == NULL) || (value == NULL)) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    return pcmk__time_subtract(dt, value);
 }
 
 // LCOV_EXCL_STOP
