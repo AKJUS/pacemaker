@@ -178,6 +178,7 @@ cib__client_triggers_refresh(const char *name)
     return (pcmk__parse_server(name) == pcmk_ipc_unknown)
            && !pcmk__str_any_of(name,
                                 "attrd_updater",
+                                "cibadmin_status",
                                 "crm_attribute",
                                 "crm_node",
                                 "crm_resource",

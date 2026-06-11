@@ -137,6 +137,7 @@ static struct {
     gboolean input_stdin;
     gboolean allow_create;
     gboolean force;
+    gboolean update_status;
     gboolean get_node_path;
     gboolean no_children;
     gboolean score_update;
@@ -807,6 +808,11 @@ static GOptionEntry addl_entries[] = {
       "result",
       NULL },
 
+    { "update-status", 'u', G_OPTION_FLAG_NONE, G_OPTION_ARG_NONE,
+      &options.update_status,
+      "(Advanced) Apply CIB update without triggering a controller refresh",
+      NULL },
+
     // @COMPAT Deprecated since 3.0.0
     { "local", 'l', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &options.local,
       "(deprecated)", NULL },
@@ -1087,7 +1093,8 @@ main(int argc, char **argv)
      * In cibadmin we explicitly output the XML portion without the prefixes. So
      * we default to LOG_CRIT.
      */
-    pcmk__cli_init_logging("cibadmin", 0);
+    pcmk__cli_init_logging(
+        options.update_status? "cibadmin_status" : "cibadmin", 0);
     set_crm_log_level(LOG_CRIT);
 
     if (args->verbosity > 0) {
