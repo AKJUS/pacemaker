@@ -247,20 +247,17 @@ crmd_exit(crm_exit_t exit_code)
     controld_destroy_failed_sync_table();
     controld_destroy_outside_events_table();
 
+    mainloop_destroy_signal(SIGCHLD);
     mainloop_destroy_signal(SIGPIPE);
     mainloop_destroy_signal(SIGUSR1);
     mainloop_destroy_signal(SIGTERM);
     mainloop_destroy_signal(SIGTRAP);
-    /* leave SIGCHLD engaged as we might still want to drain some service-actions */
 
     if (mloop) {
         GMainContext *ctx = g_main_loop_get_context(controld_globals.mainloop);
 
         /* Don't re-enter this block */
         controld_globals.mainloop = NULL;
-
-        /* no signals on final draining anymore */
-        mainloop_destroy_signal(SIGCHLD);
 
         pcmk__trace("Draining mainloop %d %d", g_main_loop_is_running(mloop),
                     g_main_context_pending(ctx));
@@ -281,8 +278,6 @@ crmd_exit(crm_exit_t exit_code)
 
         /* Won't do anything yet, since we're inside it now */
         g_main_loop_unref(mloop);
-    } else {
-        mainloop_destroy_signal(SIGCHLD);
     }
 
     throttle_fini();
