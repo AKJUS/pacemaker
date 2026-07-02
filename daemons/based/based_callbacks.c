@@ -437,6 +437,8 @@ parse_peer_options(const cib__operation_t *operation, xmlNode *request,
  * \brief Forward a CIB request to the appropriate target host(s)
  *
  * \param[in] request  CIB request to forward
+ *
+ * \note This does nothing if running in stand-alone mode.
  */
 static void
 forward_request(xmlNode *request)
@@ -444,12 +446,17 @@ forward_request(xmlNode *request)
     const char *host = pcmk__xe_get(request, PCMK__XA_CIB_HOST);
     pcmk__node_status_t *peer = NULL;
 
+    if (based_stand_alone()) {
+        return;
+    }
+
     if (host != NULL) {
         peer = pcmk__get_node(0, host, NULL, pcmk__node_search_cluster_member);
     }
 
     // Set PCMK__XA_CIB_DELEGATED_FROM only temporarily
-    pcmk__xe_set(request, PCMK__XA_CIB_DELEGATED_FROM, OUR_NODENAME);
+    pcmk__xe_set(request, PCMK__XA_CIB_DELEGATED_FROM,
+                 based_cluster_node_name());
     pcmk__cluster_send_message(peer, pcmk_ipc_based, request);
     pcmk__xe_remove_attr(request, PCMK__XA_CIB_DELEGATED_FROM);
 }
