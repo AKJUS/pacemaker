@@ -167,17 +167,11 @@ crmd_exit(crm_exit_t exit_code)
     }
 
     in_progress = TRUE;
-    pcmk__trace("Preparing to exit with status %d (%s)", exit_code,
-                crm_exit_str(exit_code));
 
     // Suppress secondary errors resulting from us disconnecting everything
     controld_set_fsa_input_flags(R_HA_DISCONNECTED);
 
-    if(ipcs) {
-        pcmk__trace("Closing IPC server");
-        g_clear_pointer(&ipcs, mainloop_del_ipc_server);
-    }
-
+    g_clear_pointer(&ipcs, mainloop_del_ipc_server);
     controld_close_attrd_ipc();
     controld_shutdown_schedulerd_ipc();
     controld_disconnect_fencer(TRUE);
@@ -250,21 +244,15 @@ crmd_exit(crm_exit_t exit_code)
         // Don't re-enter this block
         controld_globals.mainloop = NULL;
 
-        pcmk__trace("Draining mainloop %d %d", g_main_loop_is_running(mloop),
-                    g_main_context_pending(ctx));
 
         {
             int lpc = 0;
 
             while((g_main_context_pending(ctx) && lpc < 10)) {
                 lpc++;
-                pcmk__trace("Iteration %d", lpc);
                 g_main_context_dispatch(ctx);
             }
         }
-
-        pcmk__trace("Closing mainloop %d %d", g_main_loop_is_running(mloop),
-                    g_main_context_pending(ctx));
 
         // Exit the main loop and free it when we return from this dispatch
         g_main_loop_quit(mloop);
@@ -274,9 +262,6 @@ crmd_exit(crm_exit_t exit_code)
     throttle_fini();
     g_clear_pointer(&controld_globals.cib_conn, cib_delete);
     g_clear_pointer(&controld_globals.cluster, pcmk_cluster_free);
-
-    pcmk__trace("Done preparing for exit with status %d (%s)", exit_code,
-                crm_exit_str(exit_code));
     return exit_code;
 }
 
