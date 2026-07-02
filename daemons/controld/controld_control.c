@@ -150,23 +150,23 @@ crmd_fast_exit(crm_exit_t exit_code)
 crm_exit_t
 crmd_exit(crm_exit_t exit_code)
 {
+    static bool in_progress = false;
+
     GMainLoop *mloop = controld_globals.mainloop;
 
-    static bool in_progress = FALSE;
+    if (in_progress) {
+        if (exit_code == CRM_EX_OK) {
+            pcmk__debug("Exit is already in progress");
+            return exit_code;
+        }
 
-    if (in_progress && (exit_code == CRM_EX_OK)) {
-        pcmk__debug("Exit is already in progress");
-        return exit_code;
-
-    } else if(in_progress) {
         pcmk__notice("Error during shutdown process, exiting now with status "
-                     "%d (%s)",
-                     exit_code, crm_exit_str(exit_code));
+                     "%d (%s)", exit_code, crm_exit_str(exit_code));
         crm_write_blackbox(SIGTRAP, NULL);
         crmd_fast_exit(exit_code);
     }
 
-    in_progress = TRUE;
+    in_progress = true;
 
     // Suppress secondary errors resulting from us disconnecting everything
     controld_set_fsa_input_flags(R_HA_DISCONNECTED);
@@ -174,7 +174,7 @@ crmd_exit(crm_exit_t exit_code)
     g_clear_pointer(&ipcs, mainloop_del_ipc_server);
     controld_close_attrd_ipc();
     controld_shutdown_schedulerd_ipc();
-    controld_disconnect_fencer(TRUE);
+    controld_disconnect_fencer(true);
 
     if ((exit_code == CRM_EX_OK) && (controld_globals.mainloop == NULL)) {
         pcmk__debug("No mainloop detected");
@@ -238,20 +238,15 @@ crmd_exit(crm_exit_t exit_code)
     mainloop_destroy_signal(SIGTERM);
     mainloop_destroy_signal(SIGTRAP);
 
-    if (mloop) {
+    if (mloop != NULL) {
         GMainContext *ctx = g_main_loop_get_context(controld_globals.mainloop);
 
         // Don't re-enter this block
         controld_globals.mainloop = NULL;
 
-
-        {
-            int lpc = 0;
-
-            while((g_main_context_pending(ctx) && lpc < 10)) {
-                lpc++;
-                g_main_context_dispatch(ctx);
-            }
+        // Try to drain the main loop before closing it
+        for (int i = 0; (i < 10) && g_main_context_pending(ctx); i++) {
+            g_main_context_dispatch(ctx);
         }
 
         // Exit the main loop and free it when we return from this dispatch
