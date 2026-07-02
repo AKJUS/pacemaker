@@ -170,10 +170,8 @@ crmd_exit(crm_exit_t exit_code)
     pcmk__trace("Preparing to exit with status %d (%s)", exit_code,
                 crm_exit_str(exit_code));
 
-    /* Suppress secondary errors resulting from us disconnecting everything */
+    // Suppress secondary errors resulting from us disconnecting everything
     controld_set_fsa_input_flags(R_HA_DISCONNECTED);
-
-/* Close all IPC servers and clients to ensure any and all shared memory files are cleaned up */
 
     if(ipcs) {
         pcmk__trace("Closing IPC server");
@@ -189,20 +187,12 @@ crmd_exit(crm_exit_t exit_code)
         exit_code = CRM_EX_ERROR;
     }
 
-    /* On an error, just get out.
-     *
-     * Otherwise, make the effort to have mainloop exit gracefully so
-     * that it (mostly) cleans up after itself and valgrind has less
-     * to report on - allowing real errors stand out
-     */
     if (exit_code != CRM_EX_OK) {
         pcmk__notice("Forcing immediate exit with status %d (%s)", exit_code,
                      crm_exit_str(exit_code));
         crm_write_blackbox(SIGTRAP, NULL);
         crmd_fast_exit(exit_code);
     }
-
-/* Clean up as much memory as possible for valgrind */
 
     controld_clear_fsa_input_flags(R_MEMBERSHIP);
 
@@ -211,12 +201,13 @@ crmd_exit(crm_exit_t exit_code)
     controld_globals.fsa_message_queue = NULL;
 
     controld_free_node_pending_timers();
-    election_reset(controld_globals.cluster); // Stop any election timer
+
+    // Stop any election timer
+    election_reset(controld_globals.cluster);
 
     /* Tear down the CIB manager connection, but don't free it yet -- it could
      * be used when we drain the mainloop later.
      */
-
     controld_disconnect_cib_manager();
 
     verify_stopped(controld_globals.fsa_state, LOG_WARNING);
@@ -256,7 +247,7 @@ crmd_exit(crm_exit_t exit_code)
     if (mloop) {
         GMainContext *ctx = g_main_loop_get_context(controld_globals.mainloop);
 
-        /* Don't re-enter this block */
+        // Don't re-enter this block
         controld_globals.mainloop = NULL;
 
         pcmk__trace("Draining mainloop %d %d", g_main_loop_is_running(mloop),
@@ -274,9 +265,9 @@ crmd_exit(crm_exit_t exit_code)
 
         pcmk__trace("Closing mainloop %d %d", g_main_loop_is_running(mloop),
                     g_main_context_pending(ctx));
-        g_main_loop_quit(mloop);
 
-        /* Won't do anything yet, since we're inside it now */
+        // Exit the main loop and free it when we return from this dispatch
+        g_main_loop_quit(mloop);
         g_main_loop_unref(mloop);
     }
 
@@ -284,7 +275,6 @@ crmd_exit(crm_exit_t exit_code)
     g_clear_pointer(&controld_globals.cib_conn, cib_delete);
     g_clear_pointer(&controld_globals.cluster, pcmk_cluster_free);
 
-    /* Graceful */
     pcmk__trace("Done preparing for exit with status %d (%s)", exit_code,
                 crm_exit_str(exit_code));
     return exit_code;
