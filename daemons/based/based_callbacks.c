@@ -324,13 +324,14 @@ static bool
 parse_peer_options(const cib__operation_t *operation, xmlNode *request,
                    bool *local_notify, bool *needs_reply, bool *process)
 {
+    const char *local_node_name = based_cluster_node_name();
     const char *host = pcmk__xe_get(request, PCMK__XA_CIB_HOST);
     const char *delegated = pcmk__xe_get(request, PCMK__XA_CIB_DELEGATED_FROM);
     const char *op = pcmk__xe_get(request, PCMK__XA_CIB_OP);
     const char *originator = pcmk__xe_get(request, PCMK__XA_SRC);
     const char *reply_to = pcmk__xe_get(request, PCMK__XA_CIB_ISREPLYTO);
 
-    bool is_reply = pcmk__str_eq(reply_to, OUR_NODENAME, pcmk__str_casei);
+    bool is_reply = pcmk__str_eq(reply_to, local_node_name, pcmk__str_casei);
 
     if (originator == NULL) { // Shouldn't be possible
         originator = "peer";
@@ -404,9 +405,9 @@ parse_peer_options(const cib__operation_t *operation, xmlNode *request,
         }
     }
 
-    *local_notify = pcmk__str_eq(delegated, OUR_NODENAME, pcmk__str_casei);
+    *local_notify = pcmk__str_eq(delegated, local_node_name, pcmk__str_casei);
 
-    if (pcmk__str_eq(host, OUR_NODENAME, pcmk__str_casei)) {
+    if (pcmk__str_eq(host, local_node_name, pcmk__str_casei)) {
         pcmk__trace("Processing %s request sent to us from %s", op, originator);
         return true;
     }
