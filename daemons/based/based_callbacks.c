@@ -723,9 +723,10 @@ based_process_request(xmlNode *request, bool privileged,
 
     } else if (client != NULL) {
         // Forward modifying and non-local requests via cluster
-        if (!pcmk__is_set(operation->flags, cib__op_attr_local)
+        if (!based_stand_alone()
+            && !pcmk__is_set(operation->flags, cib__op_attr_local)
             && (pcmk__is_set(operation->flags, cib__op_attr_modifies)
-                || !pcmk__str_eq(host, OUR_NODENAME,
+                || !pcmk__str_eq(host, based_cluster_node_name(),
                                  pcmk__str_casei|pcmk__str_null_matches))) {
 
             forward_request(request);
