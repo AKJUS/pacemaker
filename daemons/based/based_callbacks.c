@@ -531,7 +531,8 @@ based_perform_op_rw(xmlNode *request, const cib__operation_t *operation,
      * the originator.
      */
     if ((operation->type == cib__op_commit_transact)
-        && pcmk__str_eq(originator, OUR_NODENAME, pcmk__str_casei)
+        && !based_stand_alone()
+        && pcmk__str_eq(originator, based_cluster_node_name(), pcmk__str_casei)
         && (pcmk__compare_versions(feature_set, "3.19.0") < 0)) {
 
         sync_our_cib(request, true);
