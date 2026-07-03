@@ -292,20 +292,20 @@ log_local_options(const pcmk__client_t *client,
                   const char *op)
 {
     if (pcmk__is_set(operation->flags, cib__op_attr_local)) {
-        /* @COMPAT Currently host is ignored. At a compatibility break, throw an
-         * error (from based_process_request() or earlier) if host is not NULL
-         * or OUR_NODENAME.
-         */
         pcmk__trace("Processing always-local %s op from client %s", op,
                     pcmk__client_name(client));
 
-        if (pcmk__str_eq(host, OUR_NODENAME,
-                         pcmk__str_casei|pcmk__str_null_matches)) {
-            return;
+        /* @COMPAT Currently host is ignored. At a compatibility break, throw an
+         * error (from based_process_request() or earlier) if host is not NULL
+         * or our node name.
+         */
+        if (!pcmk__str_eq(host, based_cluster_node_name(),
+                          pcmk__str_casei|pcmk__str_null_matches)) {
+
+            pcmk__warn("Operation '%s' is always local but its target host is "
+                       "set to '%s'", op, host);
         }
 
-        pcmk__warn("Operation '%s' is always local but its target host is set "
-                   "to '%s'", op, host);
         return;
     }
 
