@@ -24,9 +24,6 @@
 #include "based_remote.h"
 #include "based_transaction.h"
 
-#define OUR_NODENAME    \
-    (based_stand_alone()? "localhost" : based_cluster_node_name())
-
 extern xmlNode *based_cib;
 
 extern GMainLoop *mainloop;

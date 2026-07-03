@@ -692,7 +692,13 @@ based_process_request(xmlNode *request, bool privileged,
                     "for %s (reply=%s)", op, client_name, call_id, originator,
                     pcmk__s(host, "all"), reply_to);
     } else {
-        pcmk__xe_set(request, PCMK__XA_SRC, OUR_NODENAME);
+        const char *src = based_cluster_node_name();
+
+        if (based_stand_alone()) {
+            src = "localhost";
+        }
+
+        pcmk__xe_set(request, PCMK__XA_SRC, src);
         pcmk__trace("Processing local %s operation from %s/%s intended for %s",
                     op, client_name, call_id, pcmk__s(host, "all"));
     }
