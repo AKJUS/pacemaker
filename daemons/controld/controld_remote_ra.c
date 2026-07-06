@@ -105,7 +105,7 @@ free_cmd(void *user_data)
     free(cmd->rsc_id);
     free(cmd->action);
     free(cmd->userdata);
-    pcmk__reset_result(&(cmd->result));
+    pcmk__reset_result(&cmd->result);
     lrmd_key_value_freeall(cmd->params);
     free(cmd);
 }
@@ -344,7 +344,7 @@ static void
 check_remote_node_state(const remote_ra_cmd_t *cmd)
 {
     /* Only successful actions can change node state */
-    if (!pcmk__result_ok(&(cmd->result))) {
+    if (!pcmk__result_ok(&cmd->result)) {
         return;
     }
 
@@ -416,7 +416,7 @@ report_remote_ra_result(remote_ra_cmd_t * cmd)
                      cmd->result.exit_reason);
 
     if (pcmk__is_set(cmd->status, cmd_reported_success)
-        && !pcmk__result_ok(&(cmd->result))) {
+        && !pcmk__result_ok(&cmd->result)) {
 
         op.t_rcchange = time(NULL);
         /* This edge case will likely never ever occur, but if it does the
@@ -486,7 +486,7 @@ retry_start_cmd_cb(void *data)
     if (remaining > 0) {
         rc = handle_remote_ra_start(lrm_state, cmd, remaining * 1000);
     } else {
-        pcmk__set_result(&(cmd->result), PCMK_OCF_UNKNOWN_ERROR,
+        pcmk__set_result(&cmd->result, PCMK_OCF_UNKNOWN_ERROR,
                          PCMK_EXEC_TIMEOUT,
                          "Not enough time remains to retry remote connection");
     }
@@ -535,7 +535,7 @@ monitor_timeout_cb(void *data)
     pcmk__info("Timed out waiting for remote poke response from %s%s",
                cmd->rsc_id, ((lrm_state != NULL)? "" : " (no LRM state)"));
     cmd->monitor_timeout_id = 0;
-    pcmk__set_result(&(cmd->result), PCMK_OCF_UNKNOWN_ERROR, PCMK_EXEC_TIMEOUT,
+    pcmk__set_result(&cmd->result, PCMK_OCF_UNKNOWN_ERROR, PCMK_EXEC_TIMEOUT,
                      "Remote executor did not respond");
 
     if (lrm_state && lrm_state->remote_ra_data) {
@@ -676,7 +676,7 @@ remote_lrm_op_callback(lrmd_event_data_t * op)
             if ((op->connection_rc == -ENOKEY)
                 || (op->connection_rc == -EKEYREJECTED)) {
                 // Hard error, don't retry
-                pcmk__set_result(&(cmd->result), PCMK_OCF_INVALID_PARAM,
+                pcmk__set_result(&cmd->result, PCMK_OCF_INVALID_PARAM,
                                  PCMK_EXEC_ERROR,
                                  pcmk_strerror(op->connection_rc));
 
@@ -690,7 +690,7 @@ remote_lrm_op_callback(lrmd_event_data_t * op)
                 pcmk__trace("Not enough time before timeout (%ds) to "
                             "reschedule start",
                             remaining);
-                pcmk__format_result(&(cmd->result), PCMK_OCF_UNKNOWN_ERROR,
+                pcmk__format_result(&cmd->result, PCMK_OCF_UNKNOWN_ERROR,
                                     PCMK_EXEC_TIMEOUT,
                                     "%s without enough time to retry",
                                     pcmk_strerror(op->connection_rc));
@@ -698,7 +698,7 @@ remote_lrm_op_callback(lrmd_event_data_t * op)
 
         } else {
             lrm_state_reset_tables(lrm_state, TRUE);
-            pcmk__set_result(&(cmd->result), PCMK_OCF_OK, PCMK_EXEC_DONE, NULL);
+            pcmk__set_result(&cmd->result, PCMK_OCF_OK, PCMK_EXEC_DONE, NULL);
             lrm_remote_set_flags(lrm_state, remote_active);
         }
 
@@ -719,7 +719,7 @@ remote_lrm_op_callback(lrmd_event_data_t * op)
          * For this function, if we get the poke pack, it is always a success. Pokes
          * only fail if the send fails, or the response times out. */
         if (!pcmk__is_set(cmd->status, cmd_reported_success)) {
-            pcmk__set_result(&(cmd->result), PCMK_OCF_OK, PCMK_EXEC_DONE, NULL);
+            pcmk__set_result(&cmd->result, PCMK_OCF_OK, PCMK_EXEC_DONE, NULL);
             report_remote_ra_result(cmd);
             cmd_set_flags(cmd, cmd_reported_success);
         }
@@ -741,7 +741,7 @@ remote_lrm_op_callback(lrmd_event_data_t * op)
         if (pcmk__is_set(ra_data->status, remote_active)
             && !pcmk__is_set(cmd->status, cmd_cancel)) {
 
-            pcmk__set_result(&(cmd->result), PCMK_OCF_UNKNOWN_ERROR,
+            pcmk__set_result(&cmd->result, PCMK_OCF_UNKNOWN_ERROR,
                              PCMK_EXEC_ERROR,
                              "Remote connection unexpectedly dropped "
                              "during monitor");
@@ -791,7 +791,7 @@ handle_remote_ra_stop(lrm_state_t * lrm_state, remote_ra_cmd_t * cmd)
     lrm_state->remote_ra_data->cur_cmd = NULL;
 
     if (cmd) {
-        pcmk__set_result(&(cmd->result), PCMK_OCF_OK, PCMK_EXEC_DONE, NULL);
+        pcmk__set_result(&cmd->result, PCMK_OCF_OK, PCMK_EXEC_DONE, NULL);
         report_remote_ra_result(cmd);
     }
 }
@@ -825,7 +825,7 @@ handle_remote_ra_start(lrm_state_t * lrm_state, remote_ra_cmd_t * cmd, int timeo
     rc = controld_connect_remote_executor(lrm_state, server, port,
                                           timeout_used);
     if (rc != pcmk_rc_ok) {
-        pcmk__format_result(&(cmd->result), PCMK_OCF_UNKNOWN_ERROR,
+        pcmk__format_result(&cmd->result, PCMK_OCF_UNKNOWN_ERROR,
                             PCMK_EXEC_ERROR,
                             "Could not connect to Pacemaker Remote node %s: %s",
                             lrm_state->node_name, pcmk_rc_str(rc));
@@ -877,12 +877,12 @@ handle_remote_ra_exec(void *user_data)
             if (lrm_state_is_connected(lrm_state) == TRUE) {
                 rc = lrm_state_poke_connection(lrm_state);
                 if (rc < 0) {
-                    pcmk__set_result(&(cmd->result), PCMK_OCF_UNKNOWN_ERROR,
+                    pcmk__set_result(&cmd->result, PCMK_OCF_UNKNOWN_ERROR,
                                      PCMK_EXEC_ERROR, pcmk_strerror(rc));
                 }
             } else {
                 rc = -1;
-                pcmk__set_result(&(cmd->result), PCMK_OCF_NOT_RUNNING,
+                pcmk__set_result(&cmd->result, PCMK_OCF_NOT_RUNNING,
                                  PCMK_EXEC_DONE, "Remote connection inactive");
             }
 
@@ -918,7 +918,7 @@ handle_remote_ra_exec(void *user_data)
         } else if (strcmp(cmd->action, PCMK_ACTION_MIGRATE_TO) == 0) {
             lrm_remote_clear_flags(lrm_state, takeover_complete);
             lrm_remote_set_flags(lrm_state, expect_takeover);
-            pcmk__set_result(&(cmd->result), PCMK_OCF_OK, PCMK_EXEC_DONE, NULL);
+            pcmk__set_result(&cmd->result, PCMK_OCF_OK, PCMK_EXEC_DONE, NULL);
             report_remote_ra_result(cmd);
 
         } else if (pcmk__str_any_of(cmd->action, PCMK_ACTION_RELOAD,
@@ -932,7 +932,7 @@ handle_remote_ra_exec(void *user_data)
              * of "reload-agent". An OCF 1.1 "reload" would be a no-op anyway,
              * so this would work for that purpose as well.
              */
-            pcmk__set_result(&(cmd->result), PCMK_OCF_OK, PCMK_EXEC_DONE, NULL);
+            pcmk__set_result(&cmd->result, PCMK_OCF_OK, PCMK_EXEC_DONE, NULL);
             report_remote_ra_result(cmd);
         }
 
@@ -1031,7 +1031,7 @@ fail_all_monitor_cmds(GList * list)
     for (gIter = rm_list; gIter != NULL; gIter = gIter->next) {
         cmd = gIter->data;
 
-        pcmk__set_result(&(cmd->result), PCMK_OCF_UNKNOWN_ERROR,
+        pcmk__set_result(&cmd->result, PCMK_OCF_UNKNOWN_ERROR,
                          PCMK_EXEC_ERROR, "Lost connection to remote executor");
         pcmk__trace("Pre-emptively failing %s %s (interval=%u, %s)",
                     cmd->action, cmd->rsc_id, cmd->interval_ms, cmd->userdata);

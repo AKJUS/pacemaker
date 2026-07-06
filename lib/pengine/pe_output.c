@@ -3353,7 +3353,7 @@ ticket_default(pcmk__output_t *out, va_list args) {
          * crm_ticket or we were given details=true as an argument.
          */
         if (detail_str == NULL) {
-            char *epoch_str = pcmk__epoch2str(&(ticket->last_granted), 0);
+            char *epoch_str = pcmk__epoch2str(&ticket->last_granted, 0);
 
             out->list_item(out, NULL, "%s\t%s%s last-granted=\"%s\"",
                            ticket->id, ticket_status(ticket),

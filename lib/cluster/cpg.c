@@ -319,10 +319,10 @@ check_message_sanity(const pcmk__cpg_msg_t *msg)
         pcmk__err("%sCPG message %d from %s invalid: Claimed size of %d bytes "
                   "is too small " QB_XS " from %s[%u] to %s@%s",
                   (msg->is_compressed? "Compressed " : ""),
-                  msg->id, ais_dest(&(msg->sender)),
+                  msg->id, ais_dest(&msg->sender),
                   (int) msg->header.size,
                   msg_type2text(msg->sender.type), msg->sender.pid,
-                  msg_type2text(msg->host.type), ais_dest(&(msg->host)));
+                  msg_type2text(msg->host.type), ais_dest(&msg->host));
         return false;
     }
 
@@ -330,10 +330,10 @@ check_message_sanity(const pcmk__cpg_msg_t *msg)
         pcmk__err("%sCPG message %d from %s invalid: Sender indicated error %d "
                   QB_XS " from %s[%u] to %s@%s",
                   (msg->is_compressed? "Compressed " : ""),
-                  msg->id, ais_dest(&(msg->sender)),
+                  msg->id, ais_dest(&msg->sender),
                   msg->header.error,
                   msg_type2text(msg->sender.type), msg->sender.pid,
-                  msg_type2text(msg->host.type), ais_dest(&(msg->host)));
+                  msg_type2text(msg->host.type), ais_dest(&msg->host));
         return false;
     }
 
@@ -342,10 +342,10 @@ check_message_sanity(const pcmk__cpg_msg_t *msg)
                   "inconsistent with payload size %d "
                   QB_XS " from %s[%u] to %s@%s",
                   (msg->is_compressed? "Compressed " : ""),
-                  msg->id, ais_dest(&(msg->sender)),
+                  msg->id, ais_dest(&msg->sender),
                   (int) msg->header.size, (int) msg_data_len(msg),
                   msg_type2text(msg->sender.type), msg->sender.pid,
-                  msg_type2text(msg->host.type), ais_dest(&(msg->host)));
+                  msg_type2text(msg->host.type), ais_dest(&msg->host));
         return false;
     }
 
@@ -357,9 +357,9 @@ check_message_sanity(const pcmk__cpg_msg_t *msg)
          || (msg->data[msg->size - 1] != '\0'))) {
         pcmk__err("CPG message %d from %s invalid: Payload does not end at "
                   "byte %" PRIu32 " " QB_XS " from %s[%u] to %s@%s",
-                  msg->id, ais_dest(&(msg->sender)), msg->size,
+                  msg->id, ais_dest(&msg->sender), msg->size,
                   msg_type2text(msg->sender.type), msg->sender.pid,
-                  msg_type2text(msg->host.type), ais_dest(&(msg->host)));
+                  msg_type2text(msg->host.type), ais_dest(&msg->host));
         return false;
     }
 
@@ -367,8 +367,8 @@ check_message_sanity(const pcmk__cpg_msg_t *msg)
                 (int) msg->header.size,
                 (msg->is_compressed? "compressed " : ""), msg->id,
                 msg_type2text(msg->sender.type), msg->sender.pid,
-                ais_dest(&(msg->sender)),
-                msg_type2text(msg->host.type), ais_dest(&(msg->host)));
+                ais_dest(&msg->sender),
+                msg_type2text(msg->host.type), ais_dest(&msg->host));
     return true;
 }
 
@@ -477,7 +477,7 @@ pcmk__cpg_message_data(cpg_handle_t handle, uint32_t sender_id, uint32_t pid,
             free(uncompressed);
             pcmk__warn("Ignoring compressed CPG message %d from %s (ID %" PRIu32
                        " PID %" PRIu32 "): %s",
-                       msg->id, ais_dest(&(msg->sender)), sender_id, pid,
+                       msg->id, ais_dest(&msg->sender), sender_id, pid,
                        pcmk_rc_str(rc));
             return NULL;
         }
@@ -490,7 +490,7 @@ pcmk__cpg_message_data(cpg_handle_t handle, uint32_t sender_id, uint32_t pid,
     pcmk__trace("Received %sCPG message %d from %s (ID %" PRIu32
                 " PID %" PRIu32 "): %.40s...",
                 (msg->is_compressed? "compressed " : ""),
-                msg->id, ais_dest(&(msg->sender)), sender_id, pid, msg->data);
+                msg->id, ais_dest(&msg->sender), sender_id, pid, msg->data);
     return data;
 }
 

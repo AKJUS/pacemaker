@@ -376,7 +376,7 @@ parse_time(const char *time_str, crm_time_t *a_time)
 
     tzset();
 
-    if (!parse_hms(time_str, &(a_time->seconds))) {
+    if (!parse_hms(time_str, &a_time->seconds)) {
         return false;
     }
 
@@ -395,7 +395,7 @@ parse_time(const char *time_str, crm_time_t *a_time)
         }
     }
 
-    if (!parse_offset(offset_s, &(a_time->offset))) {
+    if (!parse_offset(offset_s, &a_time->offset)) {
         return false;
     }
 

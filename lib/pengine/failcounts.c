@@ -306,7 +306,7 @@ update_failcount_for_attr(void *key, void *value, void *user_data)
     struct failcount_data *fc_data = user_data;
 
     // If this is a matching fail count attribute, update fail count
-    if (regexec(&(fc_data->failcount_re), (const char *) key, 0, NULL, 0) == 0) {
+    if (regexec(&fc_data->failcount_re, (const char *) key, 0, NULL, 0) == 0) {
         int score = 0;
         int rc = pcmk_parse_score(value, &score, 0);
 
@@ -326,7 +326,7 @@ update_failcount_for_attr(void *key, void *value, void *user_data)
     }
 
     // If this is a matching last failure attribute, update last failure
-    if (regexec(&(fc_data->lastfailure_re), (const char *) key, 0, NULL,
+    if (regexec(&fc_data->lastfailure_re, (const char *) key, 0, NULL,
                 0) == 0) {
         long long last_ll;
         int rc = pcmk__scan_ll(value, &last_ll, 0LL);
@@ -399,8 +399,8 @@ pe_get_failcount(const pcmk_node_t *node, pcmk_resource_t *rsc,
               return 0);
     g_hash_table_foreach(node->priv->attrs, update_failcount_for_attr,
                          &fc_data);
-    regfree(&(fc_data.failcount_re));
-    regfree(&(fc_data.lastfailure_re));
+    regfree(&fc_data.failcount_re);
+    regfree(&fc_data.lastfailure_re);
 
     // If failure blocks the resource, disregard any failure timeout
     if ((fc_data.failcount > 0) && (rsc->priv->failure_expiration_ms > 0)

@@ -443,7 +443,7 @@ services_action_user(svc_action_t *op, const char *user)
 
     CRM_CHECK((op != NULL) && (user != NULL), return -EINVAL);
 
-    rc = pcmk__lookup_user(user, &(op->opaque->uid), &(op->opaque->gid));
+    rc = pcmk__lookup_user(user, &op->opaque->uid, &op->opaque->gid);
     return pcmk_rc2legacy(rc);
 }
 

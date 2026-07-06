@@ -145,7 +145,7 @@ build_arg_context(pcmk__common_args_t *args, GOptionGroup **group) {
     GOptionContext *context = NULL;
 
     GOptionEntry extra_prog_entries[] = {
-        { "quiet", 'q', 0, G_OPTION_ARG_NONE, &(args->quiet),
+        { "quiet", 'q', 0, G_OPTION_ARG_NONE, &args->quiet,
           "Display only the essential query information",
           NULL },
 

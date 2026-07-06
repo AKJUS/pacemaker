@@ -70,7 +70,7 @@ pcmk__build_arg_context(pcmk__common_args_t *common_args, const char *fmts,
     GOptionGroup *main_group;
 
     GOptionEntry main_entries[3] = {
-        { "version", '$', 0, G_OPTION_ARG_NONE, &(common_args->version),
+        { "version", '$', 0, G_OPTION_ARG_NONE, &common_args->version,
           N_("Display software version and exit"),
           NULL },
         { "verbose", 'V', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, bump_verbosity,
@@ -91,10 +91,10 @@ pcmk__build_arg_context(pcmk__common_args_t *common_args, const char *fmts,
 
     if (fmts != NULL) {
         GOptionEntry output_entries[3] = {
-            { "output-as", 0, 0, G_OPTION_ARG_STRING, &(common_args->output_ty),
+            { "output-as", 0, 0, G_OPTION_ARG_STRING, &common_args->output_ty,
               NULL,
               N_("FORMAT") },
-            { "output-to", 0, 0, G_OPTION_ARG_STRING, &(common_args->output_dest),
+            { "output-to", 0, 0, G_OPTION_ARG_STRING, &common_args->output_dest,
               N_( "Specify file name for output (or \"-\" for stdout)"), N_("DEST") },
 
             { NULL }

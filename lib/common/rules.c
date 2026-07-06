@@ -184,19 +184,19 @@ pcmk__evaluate_date_spec(const xmlNode *date_spec, const crm_time_t *now)
     }
 
     // Year, month, day
-    pcmk__time_get_ymd(now, &(ranges[0].value), &(ranges[1].value),
-                       &(ranges[2].value));
+    pcmk__time_get_ymd(now, &ranges[0].value, &ranges[1].value,
+                       &ranges[2].value);
 
     // Hour, minute, second
-    pcmk__time_get_timeofday(now, &(ranges[3].value), &(ranges[4].value),
-                             &(ranges[5].value));
+    pcmk__time_get_timeofday(now, &ranges[3].value, &ranges[4].value,
+                             &ranges[5].value);
 
     // Day of year
     ranges[6].value = now->days;
 
     // Week year, week of week year, day of week
-    pcmk__time_get_ywd(now, &(ranges[7].value), &(ranges[8].value),
-                       &(ranges[9].value));
+    pcmk__time_get_ywd(now, &ranges[7].value, &ranges[8].value,
+                       &ranges[9].value);
 
     for (int i = 0; i < PCMK__NELEM(ranges); ++i) {
         int rc = check_range(date_spec, parent_id, ranges[i].attr,

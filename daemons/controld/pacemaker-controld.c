@@ -162,7 +162,7 @@ main(int argc, char **argv)
         goto done;
     }
 
-    if (pcmk__log_output_new(&(controld_globals.logger_out)) != pcmk_rc_ok) {
+    if (pcmk__log_output_new(&controld_globals.logger_out) != pcmk_rc_ok) {
         exit_code = CRM_EX_FATAL;
         goto done;
     }

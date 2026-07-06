@@ -421,9 +421,9 @@ pcmk__new_colocation(const char *id, const char *node_attr, int score,
     new_con->node_attribute = pcmk__s(node_attr, CRM_ATTR_UNAME);
     new_con->flags = flags;
 
-    pcmk__add_this_with(&(dependent->priv->this_with_colocations), new_con,
+    pcmk__add_this_with(&dependent->priv->this_with_colocations, new_con,
                         dependent);
-    pcmk__add_with_this(&(primary->priv->with_this_colocations), new_con,
+    pcmk__add_with_this(&primary->priv->with_this_colocations, new_con,
                         primary);
 
     dependent->priv->scheduler->priv->colocation_constraints =
@@ -1930,10 +1930,10 @@ pcmk__add_dependent_scores(void *data, void *user_data)
                     "%s: Incorporating attenuated %s assignment scores due "
                     "to colocation %s",
                     primary->id, dependent->id, colocation->id);
-    dependent->priv->cmds->add_colocated_node_scores(dependent, primary,
-                                                     dependent->id,
-                                                     &(primary->priv->allowed_nodes),
-                                                     colocation, factor, flags);
+    dependent->priv->cmds->add_colocated_node_scores(
+        dependent, primary, dependent->id, &primary->priv->allowed_nodes,
+        colocation, factor, flags
+    );
 }
 
 /*!

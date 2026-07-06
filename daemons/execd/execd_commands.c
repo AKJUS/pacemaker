@@ -369,7 +369,7 @@ free_lrmd_cmd(lrmd_cmd_t * cmd)
 
     g_clear_pointer(&cmd->params, g_hash_table_destroy);
 
-    pcmk__reset_result(&(cmd->result));
+    pcmk__reset_result(&cmd->result);
     free(cmd->origin);
     free(cmd->action);
     free(cmd->real_action);
@@ -399,7 +399,7 @@ stonith_recurring_op_helper(void *data)
     rsc->recurring_ops = g_list_remove(rsc->recurring_ops, cmd);
     rsc->pending_ops = g_list_append(rsc->pending_ops, cmd);
 #ifdef PCMK__TIME_USE_CGT
-    get_current_time(&(cmd->t_queue), &(cmd->t_first_queue));
+    get_current_time(&cmd->t_queue, &cmd->t_first_queue);
 #endif
     mainloop_set_trigger(rsc->work);
 
@@ -539,7 +539,7 @@ schedule_lrmd_cmd(lrmd_rsc_t * rsc, lrmd_cmd_t * cmd)
 
     rsc->pending_ops = g_list_append(rsc->pending_ops, cmd);
 #ifdef PCMK__TIME_USE_CGT
-    get_current_time(&(cmd->t_queue), &(cmd->t_first_queue));
+    get_current_time(&cmd->t_queue, &cmd->t_first_queue);
 #endif
     mainloop_set_trigger(rsc->work);
 
@@ -611,8 +611,8 @@ send_cmd_complete_notify(lrmd_cmd_t * cmd)
     int queue_time = 0;
 
 #ifdef PCMK__TIME_USE_CGT
-    exec_time = time_diff_ms(NULL, &(cmd->t_run));
-    queue_time = time_diff_ms(&cmd->t_run, &(cmd->t_queue));
+    exec_time = time_diff_ms(NULL, &cmd->t_run);
+    queue_time = time_diff_ms(&cmd->t_run, &cmd->t_queue);
 #endif
     log_finished(cmd, exec_time, queue_time);
 
@@ -733,7 +733,7 @@ cmd_reset(lrmd_cmd_t * cmd)
 #endif
     cmd->epoch_last_run = 0;
 
-    pcmk__reset_result(&(cmd->result));
+    pcmk__reset_result(&cmd->result);
     cmd->result.execution_status = PCMK_EXEC_DONE;
 }
 
@@ -855,8 +855,8 @@ action_complete(svc_action_t * action)
 
     // Cast variable instead of function return to keep compilers happy
     code = services_result2ocf(action->standard, cmd->action, action->rc);
-    pcmk__set_result(&(cmd->result), (int) code,
-                     action->status, services__exit_reason(action));
+    pcmk__set_result(&cmd->result, (int) code, action->status,
+                     services__exit_reason(action));
 
     rsc = cmd->rsc_id ? g_hash_table_lookup(rsc_list, cmd->rsc_id) : NULL;
 
@@ -875,7 +875,7 @@ action_complete(svc_action_t * action)
         goto finalize;
     }
 
-    if (pcmk__result_ok(&(cmd->result))
+    if (pcmk__result_ok(&cmd->result)
         && pcmk__strcase_any_of(cmd->action, PCMK_ACTION_START,
                                 PCMK_ACTION_STOP, NULL)) {
         /* Getting results for when a start or stop action completes is now
@@ -886,7 +886,7 @@ action_complete(svc_action_t * action)
          * @TODO When monitors are handled in the same way, this function
          * can either be drastically simplified or done away with entirely.
          */
-        services__copy_result(action, &(cmd->result));
+        services__copy_result(action, &cmd->result);
         goto finalize;
 
     } else if (cmd->result.execution_status == PCMK_EXEC_PENDING &&
@@ -902,13 +902,13 @@ action_complete(svc_action_t * action)
         if (cmd->result.execution_status == PCMK_EXEC_PENDING) {
             goagain = true;
 
-        } else if (pcmk__result_ok(&(cmd->result))
+        } else if (pcmk__result_ok(&cmd->result)
                    && pcmk__str_eq(cmd->real_action, PCMK_ACTION_STOP,
                                    pcmk__str_casei)) {
             goagain = true;
 
         } else {
-            int time_sum = time_diff_ms(NULL, &(cmd->t_first_run));
+            int time_sum = time_diff_ms(NULL, &cmd->t_first_run);
             int timeout_left = cmd->timeout_orig - time_sum;
 
             pcmk__debug("%s systemd %s is now complete (elapsed=%dms, "
@@ -948,7 +948,7 @@ action_complete(svc_action_t * action)
                              cmd->rsc_id, cmd->action, cmd->result.exit_status,
                              g_strchomp(ctime(&cmd->epoch_rcchange)),
                              cmd->timeout_orig);
-                pcmk__set_result(&(cmd->result), PCMK_OCF_UNKNOWN_ERROR,
+                pcmk__set_result(&cmd->result, PCMK_OCF_UNKNOWN_ERROR,
                                  PCMK_EXEC_TIMEOUT,
                                  "Investigate reason for timeout, and adjust "
                                  "configured operation timeout if necessary");
@@ -961,7 +961,7 @@ action_complete(svc_action_t * action)
         goto finalize;
     }
 
-    time_sum = time_diff_ms(NULL, &(cmd->t_first_run));
+    time_sum = time_diff_ms(NULL, &cmd->t_first_run);
     timeout_left = cmd->timeout_orig - time_sum;
     delay = cmd->timeout_orig / 10;
 
@@ -974,7 +974,7 @@ action_complete(svc_action_t * action)
         cmd->start_delay = delay;
         cmd->timeout = timeout_left;
 
-        if (pcmk__result_ok(&(cmd->result))) {
+        if (pcmk__result_ok(&cmd->result)) {
             pcmk__debug("%s %s may still be in progress: re-scheduling "
                         "(elapsed=%dms, remaining=%dms, start_delay=%dms)",
                         cmd->rsc_id, cmd->real_action, time_sum, timeout_left,
@@ -1009,7 +1009,7 @@ action_complete(svc_action_t * action)
                      "remaining=%dms)",
                      cmd->rsc_id, pcmk__s(cmd->real_action, cmd->action),
                      cmd->result.exit_status, time_sum, timeout_left);
-        pcmk__set_result(&(cmd->result), PCMK_OCF_UNKNOWN_ERROR,
+        pcmk__set_result(&cmd->result, PCMK_OCF_UNKNOWN_ERROR,
                          PCMK_EXEC_TIMEOUT,
                          "Investigate reason for timeout, and adjust "
                          "configured operation timeout if necessary");
@@ -1018,7 +1018,7 @@ action_complete(svc_action_t * action)
 #endif
 
 finalize:
-    pcmk__set_result_output(&(cmd->result), services__grab_stdout(action),
+    pcmk__set_result_output(&cmd->result, services__grab_stdout(action),
                             services__grab_stderr(action));
     cmd_finalize(cmd, rsc);
 }
@@ -1092,7 +1092,7 @@ fencing_rsc_action_complete(lrmd_cmd_t *cmd, int exit_status,
     pcmk__set_result(&cmd->result, exit_status, execution_status, exit_reason);
 
     // Certain successful actions change the known state of the resource
-    if ((rsc != NULL) && pcmk__result_ok(&(cmd->result))) {
+    if ((rsc != NULL) && pcmk__result_ok(&cmd->result)) {
 
         if (pcmk__str_eq(cmd->action, PCMK_ACTION_START, pcmk__str_casei)) {
             pcmk__set_result(&rsc->fence_probe_result, CRM_EX_OK,
@@ -1371,14 +1371,14 @@ execute_nonstonith_action(lrmd_rsc_t *rsc, lrmd_cmd_t *cmd)
                                      params_copy, cmd->service_flags);
 
     if (action == NULL) {
-        pcmk__set_result(&(cmd->result), PCMK_OCF_UNKNOWN_ERROR,
-                         PCMK_EXEC_ERROR, strerror(ENOMEM));
+        pcmk__set_result(&cmd->result, PCMK_OCF_UNKNOWN_ERROR, PCMK_EXEC_ERROR,
+                         strerror(ENOMEM));
         cmd_finalize(cmd, rsc);
         return;
     }
 
     if (action->rc != PCMK_OCF_UNKNOWN) {
-        services__copy_result(action, &(cmd->result));
+        services__copy_result(action, &cmd->result);
         services_action_free(action);
         cmd_finalize(cmd, rsc);
         return;
@@ -1403,7 +1403,7 @@ execute_nonstonith_action(lrmd_rsc_t *rsc, lrmd_cmd_t *cmd)
          * called cmd_finalize(), which in this case should only reset (not
          * free) cmd.
          */
-        services__copy_result(action, &(cmd->result));
+        services__copy_result(action, &cmd->result);
         services_action_free(action);
     }
 }
@@ -1435,7 +1435,7 @@ execute_resource_action(void *user_data)
         g_list_free_1(first);
 
 #ifdef PCMK__TIME_USE_CGT
-        get_current_time(&(cmd->t_run), &(cmd->t_first_run));
+        get_current_time(&cmd->t_run, &cmd->t_first_run);
 #endif
         cmd->epoch_last_run = time(NULL);
     }

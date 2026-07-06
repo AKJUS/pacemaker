@@ -475,7 +475,7 @@ build_arg_context(pcmk__common_args_t *args, GOptionGroup **group) {
     GOptionContext *context = NULL;
 
     GOptionEntry extra_prog_entries[] = {
-        { "quiet", 'Q', 0, G_OPTION_ARG_NONE, &(args->quiet),
+        { "quiet", 'Q', 0, G_OPTION_ARG_NONE, &args->quiet,
           "Display only essential output",
           NULL },
 

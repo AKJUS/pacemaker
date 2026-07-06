@@ -149,7 +149,7 @@ set_node_info_data(pcmk_controld_api_reply_t *data, xmlNode *msg_data)
      * @TODO: Improve handling after pcmk__node_status_t is refactored to handle
      * layer-specific data better.
      */
-    pcmk__xe_get_int(msg_data, PCMK_XA_ID, &(data->data.node_info.id));
+    pcmk__xe_get_int(msg_data, PCMK_XA_ID, &data->data.node_info.id);
 
     data->data.node_info.uuid = pcmk__xe_get(msg_data, PCMK_XA_ID);
     data->data.node_info.uname = pcmk__xe_get(msg_data, PCMK_XA_UNAME);

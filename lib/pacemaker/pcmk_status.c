@@ -275,7 +275,7 @@ pcmk__status(pcmk__output_t *out, cib_t *cib,
     if ((cib->variant == cib_native)
         && pcmk__is_set(show, pcmk_section_times)) {
         // Currently used only in the times section
-        pcmk__query_node_name(out, 0, &(scheduler->priv->local_node_name), 0);
+        pcmk__query_node_name(out, 0, &scheduler->priv->local_node_name, 0);
     }
 
     rc = pcmk__output_cluster_status(scheduler, stonith, cib, current_cib,

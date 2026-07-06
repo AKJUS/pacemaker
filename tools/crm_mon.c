@@ -1236,7 +1236,7 @@ build_arg_context(pcmk__common_args_t *args, GOptionGroup **group) {
     GOptionContext *context = NULL;
 
     GOptionEntry extra_prog_entries[] = {
-        { "quiet", 'Q', 0, G_OPTION_ARG_NONE, &(args->quiet),
+        { "quiet", 'Q', 0, G_OPTION_ARG_NONE, &args->quiet,
           "Be less descriptive in output.",
           NULL },
 
@@ -1656,7 +1656,7 @@ main(int argc, char **argv)
         && pcmk__is_set(show, pcmk_section_times)) {
 
         // Currently used only in the times section
-        pcmk__query_node_name(out, 0, &(scheduler->priv->local_node_name), 0);
+        pcmk__query_node_name(out, 0, &scheduler->priv->local_node_name, 0);
     }
 
     out->message(out, "crm-mon-disconnected",

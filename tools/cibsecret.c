@@ -413,7 +413,7 @@ get_live_peers(pcmk__output_t *out)
 
     /* Get the local node name if possible. */
     if (cib->variant != cib_file) {
-        rc = pcmk__query_node_name(out, 0, &(nd.local_node), 0);
+        rc = pcmk__query_node_name(out, 0, &nd.local_node, 0);
         if (rc != pcmk_rc_ok) {
             out->err(out, "Could not get local node name");
             goto done;

@@ -65,7 +65,7 @@ do_ha_control(long long action, enum crmd_fsa_cause cause,
 
             controld_election_init();
 
-            pcmk__str_update(&(controld_globals.our_uuid),
+            pcmk__str_update(&controld_globals.our_uuid,
                              pcmk__cluster_get_xml_id(node));
 
             if (controld_globals.our_uuid == NULL) {
@@ -577,7 +577,7 @@ config_query_callback(xmlNode * msg, int call_id, int rc, xmlNode * output, void
     controld_globals.node_pending_timeout /= 1000;
 
     value = g_hash_table_lookup(config_hash, PCMK_OPT_CLUSTER_NAME);
-    pcmk__str_update(&(controld_globals.cluster_name), value);
+    pcmk__str_update(&controld_globals.cluster_name, value);
 
     // Let subcomponents initialize their own static variables
     controld_configure_election(config_hash);

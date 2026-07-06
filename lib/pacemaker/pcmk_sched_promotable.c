@@ -380,10 +380,10 @@ apply_coloc_to_primary(void *data, void *user_data)
                     colocation->id, colocation->dependent->id,
                     colocation->primary->id,
                     pcmk_readable_score(colocation->score));
-    dependent->priv->cmds->add_colocated_node_scores(dependent, clone,
-                                                     clone->id,
-                                                     &(clone->priv->allowed_nodes),
-                                                     colocation, factor, flags);
+    dependent->priv->cmds->add_colocated_node_scores(
+        dependent, clone, clone->id, &clone->priv->allowed_nodes, colocation,
+        factor, flags
+    );
 }
 
 /*!

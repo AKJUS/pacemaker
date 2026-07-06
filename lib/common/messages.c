@@ -242,5 +242,5 @@ void
 pcmk__reset_request(pcmk__request_t *request)
 {
     g_clear_pointer(&request->op, free);
-    pcmk__reset_result(&(request->result));
+    pcmk__reset_result(&request->result);
 }

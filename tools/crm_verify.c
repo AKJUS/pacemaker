@@ -91,7 +91,7 @@ build_arg_context(pcmk__common_args_t *args, GOptionGroup **group) {
                               "\tcrm_verify --xml-file file.xml --verbose\n\n";
 
     GOptionEntry extra_prog_entries[] = {
-        { "quiet", 'q', 0, G_OPTION_ARG_NONE, &(args->quiet),
+        { "quiet", 'q', 0, G_OPTION_ARG_NONE, &args->quiet,
           "Don't print verify information",
           NULL },
         { NULL }

@@ -609,7 +609,7 @@ unpack_priority(pcmk_resource_t *rsc)
 {
     const char *value = g_hash_table_lookup(rsc->priv->meta,
                                             PCMK_META_PRIORITY);
-    int rc = pcmk_parse_score(value, &(rsc->priv->priority), 0);
+    int rc = pcmk_parse_score(value, &rsc->priv->priority, 0);
 
     if (rc != pcmk_rc_ok) {
         pcmk__config_warn("Using default (0) for resource %s "
@@ -639,7 +639,7 @@ unpack_stickiness(pcmk_resource_t *rsc)
                           "' is deprecated and will be removed in a "
                           "future release (just leave it unset)");
     } else {
-        int rc = pcmk_parse_score(value, &(rsc->priv->stickiness), 0);
+        int rc = pcmk_parse_score(value, &rsc->priv->stickiness, 0);
 
         if (rc != pcmk_rc_ok) {
             pcmk__config_warn("Using default (0) for resource %s "
@@ -671,7 +671,7 @@ unpack_migration_threshold(pcmk_resource_t *rsc)
                           "future release (just leave it unset)");
         rsc->priv->ban_after_failures = PCMK_SCORE_INFINITY;
     } else {
-        int rc = pcmk_parse_score(value, &(rsc->priv->ban_after_failures),
+        int rc = pcmk_parse_score(value, &rsc->priv->ban_after_failures,
                                   PCMK_SCORE_INFINITY);
 
         if ((rc != pcmk_rc_ok) || (rsc->priv->ban_after_failures < 0)) {
@@ -910,7 +910,7 @@ pe__unpack_resource(xmlNode *xml_obj, pcmk_resource_t **rsc,
 
     value = g_hash_table_lookup(rsc_private->meta, PCMK_META_FAILURE_TIMEOUT);
     if (value != NULL) {
-        pcmk_parse_interval_spec(value, &(rsc_private->failure_expiration_ms));
+        pcmk_parse_interval_spec(value, &rsc_private->failure_expiration_ms);
     }
 
     if (remote_node) {
@@ -926,8 +926,7 @@ pe__unpack_resource(xmlNode *xml_obj, pcmk_resource_t **rsc,
         if (value) {
             /* reconnect delay works by setting failure_timeout and preventing the
              * connection from starting until the failure is cleared. */
-            pcmk_parse_interval_spec(value,
-                                     &(rsc_private->remote_reconnect_ms));
+            pcmk_parse_interval_spec(value, &rsc_private->remote_reconnect_ms);
 
             /* We want to override any default failure_timeout in use when remote
              * PCMK_REMOTE_RA_RECONNECT_INTERVAL is in use.
@@ -937,7 +936,7 @@ pe__unpack_resource(xmlNode *xml_obj, pcmk_resource_t **rsc,
         }
     }
 
-    get_target_role(*rsc, &(rsc_private->next_role));
+    get_target_role(*rsc, &rsc_private->next_role);
     pcmk__rsc_trace(*rsc, "%s desired next state: %s", (*rsc)->id,
                     (rsc_private->next_role == pcmk_role_unknown)?
                         "default" : pcmk_role_text(rsc_private->next_role));

@@ -823,7 +823,7 @@ pcmk__init_scheduler(pcmk__output_t *out, xmlNodePtr input, const crm_time_t *da
         }
 
     } else {
-        int rc = cib__signon_query(out, NULL, &(new_scheduler->input));
+        int rc = cib__signon_query(out, NULL, &new_scheduler->input);
 
         if (rc != pcmk_rc_ok) {
             pcmk_free_scheduler(new_scheduler);

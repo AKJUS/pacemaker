@@ -228,11 +228,11 @@ remote_send_iovs(pcmk__remote_t *remote, struct iovec *iov, int iovs)
 
     for (int lpc = 0; (lpc < iovs) && (rc == pcmk_rc_ok); lpc++) {
         if (remote->tls_session) {
-            rc = send_tls(remote->tls_session, &(iov[lpc]));
+            rc = send_tls(remote->tls_session, &iov[lpc]);
             continue;
         }
         if (remote->tcp_socket >= 0) {
-            rc = send_plaintext(remote->tcp_socket, &(iov[lpc]));
+            rc = send_plaintext(remote->tcp_socket, &iov[lpc]);
         } else {
             rc = ESOCKTNOSUPPORT;
         }

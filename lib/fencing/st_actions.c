@@ -65,8 +65,8 @@ static void log_action(stonith_action_t *action, pid_t pid);
 static void
 set_result_from_svc_action(stonith_action_t *action, svc_action_t *svc_action)
 {
-    services__copy_result(svc_action, &(action->result));
-    pcmk__set_result_output(&(action->result),
+    services__copy_result(svc_action, &action->result);
+    pcmk__set_result_output(&action->result,
                             services__grab_stdout(svc_action),
                             services__grab_stderr(svc_action));
 }
@@ -212,7 +212,7 @@ stonith__destroy_action(stonith_action_t *action)
         free(action->action);
         g_clear_pointer(&action->args, g_hash_table_destroy);
         g_clear_pointer(&action->svc_action, services_action_free);
-        pcmk__reset_result(&(action->result));
+        pcmk__reset_result(&action->result);
         free(action);
     }
 }
@@ -228,7 +228,7 @@ stonith__destroy_action(stonith_action_t *action)
 pcmk__action_result_t *
 stonith__action_result(stonith_action_t *action)
 {
-    return (action == NULL)? NULL : &(action->result);
+    return (action == NULL)? NULL : &action->result;
 }
 
 #define FAILURE_MAX_RETRIES 2
@@ -265,7 +265,7 @@ stonith__action_create(const char *agent, const char *action_name,
     action->timeout = action->remaining_timeout = timeout_sec;
     action->max_retries = FAILURE_MAX_RETRIES;
 
-    pcmk__set_result(&(action->result), PCMK_OCF_UNKNOWN, PCMK_EXEC_UNKNOWN,
+    pcmk__set_result(&action->result, PCMK_OCF_UNKNOWN, PCMK_EXEC_UNKNOWN,
                      "Initialization bug in fencing library");
 
     if (device_args) {
@@ -527,17 +527,15 @@ stonith_action_async_done(svc_action_t *svc_action)
     svc_action->params = NULL;
     log_action(action, action->pid);
 
-    if (!pcmk__result_ok(&(action->result))
-        && update_remaining_timeout(action)) {
+    if (!pcmk__result_ok(&action->result)
+        && update_remaining_timeout(action)
+        && (internal_stonith_action_execute(action) == pcmk_ok)) {
 
-        int rc = internal_stonith_action_execute(action);
-        if (rc == pcmk_ok) {
-            return;
-        }
+        return;
     }
 
     if (action->done_cb) {
-        action->done_cb(action->pid, &(action->result), action->userdata);
+        action->done_cb(action->pid, &action->result, action->userdata);
     }
 
     action->svc_action = NULL; // don't remove our caller
@@ -556,7 +554,7 @@ stonith_action_async_forked(svc_action_t *svc_action)
         (action->fork_cb) (svc_action->pid, action->userdata);
     }
 
-    pcmk__set_result(&(action->result), PCMK_OCF_UNKNOWN, PCMK_EXEC_PENDING,
+    pcmk__set_result(&action->result, PCMK_OCF_UNKNOWN, PCMK_EXEC_PENDING,
                      NULL);
 
     pcmk__trace("Child process %d performing action '%s' successfully forked",
@@ -616,7 +614,7 @@ internal_stonith_action_execute(stonith_action_t * action)
 
     if ((action->action == NULL) || (action->args == NULL)
         || (action->agent == NULL)) {
-        pcmk__set_result(&(action->result), PCMK_OCF_UNKNOWN_ERROR,
+        pcmk__set_result(&action->result, PCMK_OCF_UNKNOWN_ERROR,
                          PCMK_EXEC_ERROR_FATAL, "Bug in fencing library");
         return -EINVAL;
     }
@@ -641,7 +639,7 @@ internal_stonith_action_execute(stonith_action_t * action)
 
     /* keep retries from executing out of control and free previous results */
     if (is_retry) {
-        pcmk__reset_result(&(action->result));
+        pcmk__reset_result(&action->result);
         // @TODO This should be nonblocking via timer if mainloop is used
         sleep(1);
     }

@@ -1981,7 +1981,7 @@ build_arg_context(pcmk__common_args_t *args, GOptionGroup **group) {
     GOptionContext *context = NULL;
 
     GOptionEntry extra_prog_entries[] = {
-        { "quiet", 'Q', G_OPTION_FLAG_NONE, G_OPTION_ARG_NONE, &(args->quiet),
+        { "quiet", 'Q', G_OPTION_FLAG_NONE, G_OPTION_ARG_NONE, &args->quiet,
           "Be less descriptive in output.",
           NULL },
         { "resource", 'r', G_OPTION_FLAG_NONE, G_OPTION_ARG_STRING, &options.rsc_id,

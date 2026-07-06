@@ -669,8 +669,8 @@ pcmk__new_cancel_action(pcmk_resource_t *rsc, const char *task,
     cancel_op = custom_action(rsc, key, PCMK_ACTION_CANCEL, node, FALSE,
                               rsc->priv->scheduler);
 
-    pcmk__str_update(&(cancel_op->task), PCMK_ACTION_CANCEL);
-    pcmk__str_update(&(cancel_op->cancel_task), task);
+    pcmk__str_update(&cancel_op->task, PCMK_ACTION_CANCEL);
+    pcmk__str_update(&cancel_op->cancel_task, task);
 
     interval_ms_s = pcmk__assert_asprintf("%u", interval_ms);
     pcmk__insert_meta(cancel_op, PCMK_XA_OPERATION, task);

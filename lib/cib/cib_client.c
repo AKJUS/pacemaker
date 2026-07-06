@@ -413,7 +413,7 @@ cib_client_fetch_schemas(cib_t *cib, xmlNode **output_data, const char *after_ve
 static void
 cib_client_set_user(cib_t *cib, const char *user)
 {
-    pcmk__str_update(&(cib->user), user);
+    pcmk__str_update(&cib->user, user);
 }
 
 static void

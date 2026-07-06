@@ -130,7 +130,7 @@ gboolean
 name_cb(const char *option_name, const char *optarg, void *data, GError **error)
 {
     options.command = 'N';
-    pcmk__scan_min_int(optarg, &(options.nodeid), 0);
+    pcmk__scan_min_int(optarg, &options.nodeid, 0);
     return TRUE;
 }
 
@@ -764,7 +764,7 @@ build_arg_context(pcmk__common_args_t *args, GOptionGroup **group) {
     GOptionContext *context = NULL;
 
     GOptionEntry extra_prog_entries[] = {
-        { "quiet", 'Q', 0, G_OPTION_ARG_NONE, &(args->quiet),
+        { "quiet", 'Q', 0, G_OPTION_ARG_NONE, &args->quiet,
           "Be less descriptive in output.",
           NULL },
 
