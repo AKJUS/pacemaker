@@ -150,60 +150,43 @@ crmd_fast_exit(crm_exit_t exit_code)
 crm_exit_t
 crmd_exit(crm_exit_t exit_code)
 {
+    static bool in_progress = false;
+
     GMainLoop *mloop = controld_globals.mainloop;
 
-    static bool in_progress = FALSE;
+    if (in_progress) {
+        if (exit_code == CRM_EX_OK) {
+            pcmk__debug("Exit is already in progress");
+            return exit_code;
+        }
 
-    if (in_progress && (exit_code == CRM_EX_OK)) {
-        pcmk__debug("Exit is already in progress");
-        return exit_code;
-
-    } else if(in_progress) {
         pcmk__notice("Error during shutdown process, exiting now with status "
-                     "%d (%s)",
-                     exit_code, crm_exit_str(exit_code));
+                     "%d (%s)", exit_code, crm_exit_str(exit_code));
         crm_write_blackbox(SIGTRAP, NULL);
         crmd_fast_exit(exit_code);
     }
 
-    in_progress = TRUE;
-    pcmk__trace("Preparing to exit with status %d (%s)", exit_code,
-                crm_exit_str(exit_code));
+    in_progress = true;
 
-    /* Suppress secondary errors resulting from us disconnecting everything */
+    // Suppress secondary errors resulting from us disconnecting everything
     controld_set_fsa_input_flags(R_HA_DISCONNECTED);
 
-/* Close all IPC servers and clients to ensure any and all shared memory files are cleaned up */
-
-    if(ipcs) {
-        pcmk__trace("Closing IPC server");
-        mainloop_del_ipc_server(ipcs);
-        ipcs = NULL;
-    }
-
+    g_clear_pointer(&ipcs, mainloop_del_ipc_server);
     controld_close_attrd_ipc();
     controld_shutdown_schedulerd_ipc();
-    controld_disconnect_fencer(TRUE);
+    controld_disconnect_fencer(true);
 
     if ((exit_code == CRM_EX_OK) && (controld_globals.mainloop == NULL)) {
         pcmk__debug("No mainloop detected");
         exit_code = CRM_EX_ERROR;
     }
 
-    /* On an error, just get out.
-     *
-     * Otherwise, make the effort to have mainloop exit gracefully so
-     * that it (mostly) cleans up after itself and valgrind has less
-     * to report on - allowing real errors stand out
-     */
     if (exit_code != CRM_EX_OK) {
         pcmk__notice("Forcing immediate exit with status %d (%s)", exit_code,
                      crm_exit_str(exit_code));
         crm_write_blackbox(SIGTRAP, NULL);
         crmd_fast_exit(exit_code);
     }
-
-/* Clean up as much memory as possible for valgrind */
 
     controld_clear_fsa_input_flags(R_MEMBERSHIP);
 
@@ -212,12 +195,13 @@ crmd_exit(crm_exit_t exit_code)
     controld_globals.fsa_message_queue = NULL;
 
     controld_free_node_pending_timers();
-    election_reset(controld_globals.cluster); // Stop any election timer
+
+    // Stop any election timer
+    election_reset(controld_globals.cluster);
 
     /* Tear down the CIB manager connection, but don't free it yet -- it could
      * be used when we drain the mainloop later.
      */
-
     controld_disconnect_cib_manager();
 
     verify_stopped(controld_globals.fsa_state, LOG_WARNING);
@@ -248,51 +232,31 @@ crmd_exit(crm_exit_t exit_code)
     controld_destroy_failed_sync_table();
     controld_destroy_outside_events_table();
 
+    mainloop_destroy_signal(SIGCHLD);
     mainloop_destroy_signal(SIGPIPE);
     mainloop_destroy_signal(SIGUSR1);
     mainloop_destroy_signal(SIGTERM);
     mainloop_destroy_signal(SIGTRAP);
-    /* leave SIGCHLD engaged as we might still want to drain some service-actions */
 
-    if (mloop) {
+    if (mloop != NULL) {
         GMainContext *ctx = g_main_loop_get_context(controld_globals.mainloop);
 
-        /* Don't re-enter this block */
+        // Don't re-enter this block
         controld_globals.mainloop = NULL;
 
-        /* no signals on final draining anymore */
-        mainloop_destroy_signal(SIGCHLD);
-
-        pcmk__trace("Draining mainloop %d %d", g_main_loop_is_running(mloop),
-                    g_main_context_pending(ctx));
-
-        {
-            int lpc = 0;
-
-            while((g_main_context_pending(ctx) && lpc < 10)) {
-                lpc++;
-                pcmk__trace("Iteration %d", lpc);
-                g_main_context_dispatch(ctx);
-            }
+        // Try to drain the main loop before closing it
+        for (int i = 0; (i < 10) && g_main_context_pending(ctx); i++) {
+            g_main_context_dispatch(ctx);
         }
 
-        pcmk__trace("Closing mainloop %d %d", g_main_loop_is_running(mloop),
-                    g_main_context_pending(ctx));
+        // Exit the main loop and free it when we return from this dispatch
         g_main_loop_quit(mloop);
-
-        /* Won't do anything yet, since we're inside it now */
         g_main_loop_unref(mloop);
-    } else {
-        mainloop_destroy_signal(SIGCHLD);
     }
 
     throttle_fini();
     g_clear_pointer(&controld_globals.cib_conn, cib_delete);
     g_clear_pointer(&controld_globals.cluster, pcmk_cluster_free);
-
-    /* Graceful */
-    pcmk__trace("Done preparing for exit with status %d (%s)", exit_code,
-                crm_exit_str(exit_code));
     return exit_code;
 }
 
@@ -443,8 +407,7 @@ do_stop(long long action, enum crmd_fsa_cause cause,
         fsa_data_t *msg_data)
 {
     pcmk__trace("Stopping IPC server");
-    mainloop_del_ipc_server(ipcs);
-    ipcs = NULL;
+    g_clear_pointer(&ipcs, mainloop_del_ipc_server);
     controld_fsa_append(C_FSA_INTERNAL, I_TERMINATE, NULL);
 }
 
