@@ -966,7 +966,7 @@ duration_as_string(const crm_time_t *dt, int usec, bool show_usec, GString *buf)
 
         if (print_sec_component) {
             if (show_usec) {
-                sec_usec_as_string(seconds, QB_ABS(usec), buf);
+                sec_usec_as_string(seconds, usec, buf);
             } else {
                 g_string_append_printf(buf, "%" PRIu32, seconds);
             }
