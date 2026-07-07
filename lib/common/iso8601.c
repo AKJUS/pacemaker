@@ -1623,45 +1623,91 @@ crm_time_subtract(const crm_time_t *dt, const crm_time_t *value)
     return subtract_time(dt, value, false);
 }
 
-#define do_cmp_field(l, r, field)					\
-    if(rc == 0) {                                                       \
-		if(l->field > r->field) {				\
-			pcmk__trace("%s: %d > %d",			\
-				    #field, l->field, r->field);	\
-			rc = 1;                                         \
-		} else if(l->field < r->field) {			\
-			pcmk__trace("%s: %d < %d",			\
-				    #field, l->field, r->field);	\
-			rc = -1;					\
-		}							\
-    }
-
+/*!
+ * \internal
+ * \brief Compare two time objects
+ *
+ * Two time objects are equal if they're both \c NULL or if their corresponding
+ * \c years, \c days, and \c seconds fields are all equal.
+ *
+ * If only one time object is \c NULL, then it is considered to be the earlier
+ * time.
+ *
+ * Comparisons are performed after converting both time objects to UTC.
+ *
+ * \param[in] time1  First time object to compare
+ * \param[in] time2  Second time object to compare
+ *
+ * \retval -1  if \p time1 is earlier than \p time2
+ * \retval  1  if \p time1 is later than \p time2
+ * \retval  0  if \p time1 and \p time2 are equal
+ */
 int
-pcmk__time_compare(const crm_time_t *a, const crm_time_t *b)
+pcmk__time_compare(const crm_time_t *time1, const crm_time_t *time2)
 {
     int rc = 0;
-    crm_time_t *t1 = NULL;
-    crm_time_t *t2 = NULL;
+    crm_time_t *utc1 = NULL;
+    crm_time_t *utc2 = NULL;
 
-    if ((a == NULL) && (b == NULL)) {
-        return 0;
-    }
-    if (a == NULL) {
-        return -1;
-    }
-    if (b == NULL) {
-        return 1;
+    if ((time1 == NULL) && (time2 == NULL)) {
+        goto done;
     }
 
-    t1 = copy_time_to_utc(a);
-    t2 = copy_time_to_utc(b);
+    if (time1 == NULL) {
+        rc = -1;
+        goto done;
+    }
 
-    do_cmp_field(t1, t2, years);
-    do_cmp_field(t1, t2, days);
-    do_cmp_field(t1, t2, seconds);
+    if (time2 == NULL) {
+        rc = 1;
+        goto done;
+    }
 
-    crm_time_free(t1);
-    crm_time_free(t2);
+    utc1 = copy_time_to_utc(time1);
+    utc2 = copy_time_to_utc(time2);
+
+    if (utc1->years < utc2->years) {
+        pcmk__trace("Years: %d < %d", utc1->years, utc2->years);
+        rc = -1;
+        goto done;
+    }
+
+    if (utc1->years > utc2->years) {
+        pcmk__trace("Years: %d > %d", utc1->years, utc2->years);
+        rc = 1;
+        goto done;
+    }
+
+    if (utc1->days < utc2->days) {
+        pcmk__trace("Days: %d < %d", utc1->days, utc2->days);
+        rc = -1;
+        goto done;
+    }
+
+    if (utc1->days > utc2->days) {
+        pcmk__trace("Days: %d > %d", utc1->days, utc2->days);
+        rc = 1;
+        goto done;
+    }
+
+    if (utc1->seconds < utc2->seconds) {
+        pcmk__trace("Seconds: %d < %d", utc1->seconds, utc2->seconds);
+        rc = -1;
+        goto done;
+    }
+
+    if (utc1->seconds > utc2->seconds) {
+        pcmk__trace("Seconds: %d > %d", utc1->seconds, utc2->seconds);
+        rc = 1;
+        goto done;
+    }
+
+    pcmk__trace("Times equal: %d years, %d days, %d seconds",
+                utc1->years, utc1->days, utc1->seconds);
+
+done:
+    crm_time_free(utc1);
+    crm_time_free(utc2);
     return rc;
 }
 
