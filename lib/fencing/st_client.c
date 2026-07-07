@@ -1951,6 +1951,9 @@ stonith__api_new(void)
 
     new_stonith->cmds = calloc(1, sizeof(stonith_api_operations_t));
     if (new_stonith->cmds == NULL) {
+        if (private->stonith_op_callback_table) {
+            g_hash_table_destroy(private->stonith_op_callback_table);
+        }
         free(new_stonith->st_private);
         free(new_stonith);
         return NULL;
