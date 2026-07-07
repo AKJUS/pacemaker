@@ -899,23 +899,28 @@ sec_usec_as_string(long long sec, int usec, GString *buf)
  * \param[in]     usec       Microseconds to add to \p dt
  * \param[in]     show_usec  Whether to include microseconds in \p buf
  * \param[in,out] buf        Result buffer
+ *
+ * \note This looks like it would produce incorrect output when \p dt has one or
+ *       more negative fields. As a duration, however, it generally should not.
  */
 static void
 duration_as_string(const crm_time_t *dt, int usec, bool show_usec, GString *buf)
 {
     pcmk__assert(valid_sec_usec(dt->seconds, usec));
 
-    if (dt->years) {
-        g_string_append_printf(buf, "%4d year%s ",
-                               dt->years, pcmk__plural_s(dt->years));
+    if (dt->years != 0) {
+        g_string_append_printf(buf, "%4d year%s ", dt->years,
+                               pcmk__plural_s(dt->years));
     }
-    if (dt->months) {
-        g_string_append_printf(buf, "%2d month%s ",
-                               dt->months, pcmk__plural_s(dt->months));
+
+    if (dt->months != 0) {
+        g_string_append_printf(buf, "%2d month%s ", dt->months,
+                               pcmk__plural_s(dt->months));
     }
-    if (dt->days) {
-        g_string_append_printf(buf, "%2d day%s ",
-                               dt->days, pcmk__plural_s(dt->days));
+
+    if (dt->days != 0) {
+        g_string_append_printf(buf, "%2d day%s ", dt->days,
+                               pcmk__plural_s(dt->days));
     }
 
     // At least print seconds (and optionally usecs)
@@ -925,34 +930,34 @@ duration_as_string(const crm_time_t *dt, int usec, bool show_usec, GString *buf)
         } else {
             g_string_append_printf(buf, "%d", dt->seconds);
         }
+
         g_string_append_printf(buf, " second%s", pcmk__plural_s(dt->seconds));
     }
 
     // More than one minute, so provide a more readable breakdown into units
     if (QB_ABS(dt->seconds) >= SECONDS_IN_MINUTE) {
-        uint32_t h = 0;
-        uint32_t m = 0;
-        uint32_t s = 0;
-        uint32_t u = QB_ABS(usec);
+        uint32_t hours = 0;
+        uint32_t minutes = 0;
+        uint32_t seconds = 0;
         bool print_sec_component = false;
 
-        seconds_to_hms(dt->seconds, &h, &m, &s);
-        print_sec_component = ((s != 0) || (show_usec && (u != 0)));
+        seconds_to_hms(dt->seconds, &hours, &minutes, &seconds);
+        print_sec_component = ((seconds != 0) || (show_usec && (usec != 0)));
 
         g_string_append(buf, " (");
 
-        if (h) {
-            g_string_append_printf(buf, "%" PRIu32 " hour%s",
-                                   h, pcmk__plural_s(h));
+        if (hours != 0) {
+            g_string_append_printf(buf, "%" PRIu32 " hour%s", hours,
+                                   pcmk__plural_s(hours));
 
-            if ((m != 0) || print_sec_component) {
+            if ((minutes != 0) || print_sec_component) {
                 g_string_append_c(buf, ' ');
             }
         }
 
-        if (m) {
-            g_string_append_printf(buf, "%" PRIu32 " minute%s",
-                                   m, pcmk__plural_s(m));
+        if (minutes != 0) {
+            g_string_append_printf(buf, "%" PRIu32 " minute%s", minutes,
+                                   pcmk__plural_s(minutes));
 
             if (print_sec_component) {
                 g_string_append_c(buf, ' ');
@@ -961,10 +966,11 @@ duration_as_string(const crm_time_t *dt, int usec, bool show_usec, GString *buf)
 
         if (print_sec_component) {
             if (show_usec) {
-                sec_usec_as_string(s, u, buf);
+                sec_usec_as_string(seconds, QB_ABS(usec), buf);
             } else {
-                g_string_append_printf(buf, "%" PRIu32, s);
+                g_string_append_printf(buf, "%" PRIu32, seconds);
             }
+
             g_string_append_printf(buf, " second%s",
                                    pcmk__plural_s(dt->seconds));
         }
