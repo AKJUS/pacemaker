@@ -1920,8 +1920,8 @@ stonith_api_validate(stonith_t *st, int call_options, const char *rsc_id,
  * \internal
  * \brief Create a new fencer API connection object
  *
- * \return Newly allocated fencer API connection object, or \c NULL on
- *         allocation failure
+ * \return Newly allocated fencer API connection object (guaranteed not to be
+ *         \c NULL)
  */
 stonith_t *
 stonith__api_new(void)
@@ -1929,66 +1929,50 @@ stonith__api_new(void)
     stonith_t *new_stonith = NULL;
     stonith_private_t *private = NULL;
 
-    new_stonith = calloc(1, sizeof(stonith_t));
-    if (new_stonith == NULL) {
-        return NULL;
-    }
-
-    private = calloc(1, sizeof(stonith_private_t));
-    if (private == NULL) {
-        free(new_stonith);
-        return NULL;
-    }
+    new_stonith = pcmk__assert_alloc(1, sizeof(stonith_t));
+    private = pcmk__assert_alloc(1, sizeof(stonith_private_t));
     new_stonith->st_private = private;
 
     private->stonith_op_callback_table = pcmk__intkey_table(stonith_destroy_op_callback);
     private->notify_list = NULL;
     private->notify_refcnt = 0;
-    private->notify_deletes = FALSE;
+    private->notify_deletes = false;
 
     new_stonith->call_id = 1;
     new_stonith->state = stonith_disconnected;
 
-    new_stonith->cmds = calloc(1, sizeof(stonith_api_operations_t));
-    if (new_stonith->cmds == NULL) {
-        if (private->stonith_op_callback_table) {
-            g_hash_table_destroy(private->stonith_op_callback_table);
-        }
-        free(new_stonith->st_private);
-        free(new_stonith);
-        return NULL;
-    }
+    new_stonith->cmds = pcmk__assert_alloc(1, sizeof(stonith_api_operations_t));
 
-    new_stonith->cmds->free       = free_stonith_api;
-    new_stonith->cmds->connect    = stonith_api_signon;
+    new_stonith->cmds->free = free_stonith_api;
+    new_stonith->cmds->connect = stonith_api_signon;
     new_stonith->cmds->disconnect = stonith_api_signoff;
 
-    new_stonith->cmds->list       = stonith_api_list;
-    new_stonith->cmds->monitor    = stonith_api_monitor;
-    new_stonith->cmds->status     = stonith_api_status;
-    new_stonith->cmds->fence      = stonith_api_fence;
+    new_stonith->cmds->list = stonith_api_list;
+    new_stonith->cmds->monitor = stonith_api_monitor;
+    new_stonith->cmds->status = stonith_api_status;
+    new_stonith->cmds->fence = stonith_api_fence;
     new_stonith->cmds->fence_with_delay = stonith_api_fence_with_delay;
-    new_stonith->cmds->confirm    = stonith_api_confirm;
-    new_stonith->cmds->history    = stonith_api_history;
+    new_stonith->cmds->confirm = stonith_api_confirm;
+    new_stonith->cmds->history = stonith_api_history;
 
-    new_stonith->cmds->list_agents  = stonith_api_device_list;
-    new_stonith->cmds->metadata     = stonith_api_device_metadata;
+    new_stonith->cmds->list_agents = stonith_api_device_list;
+    new_stonith->cmds->metadata = stonith_api_device_metadata;
 
-    new_stonith->cmds->query           = stonith_api_query;
-    new_stonith->cmds->remove_device   = stonith_api_remove_device;
+    new_stonith->cmds->query = stonith_api_query;
+    new_stonith->cmds->remove_device = stonith_api_remove_device;
     new_stonith->cmds->register_device = stonith_api_register_device;
 
-    new_stonith->cmds->remove_level          = stonith_api_remove_level;
-    new_stonith->cmds->remove_level_full     = stonith_api_remove_level_full;
-    new_stonith->cmds->register_level        = stonith_api_register_level;
-    new_stonith->cmds->register_level_full   = stonith_api_register_level_full;
+    new_stonith->cmds->remove_level = stonith_api_remove_level;
+    new_stonith->cmds->remove_level_full = stonith_api_remove_level_full;
+    new_stonith->cmds->register_level = stonith_api_register_level;
+    new_stonith->cmds->register_level_full = stonith_api_register_level_full;
 
-    new_stonith->cmds->remove_callback       = stonith_api_del_callback;
-    new_stonith->cmds->register_callback     = stonith_api_add_callback;
-    new_stonith->cmds->remove_notification   = stonith_api_del_notification;
+    new_stonith->cmds->remove_callback = stonith_api_del_callback;
+    new_stonith->cmds->register_callback = stonith_api_add_callback;
+    new_stonith->cmds->remove_notification = stonith_api_del_notification;
     new_stonith->cmds->register_notification = stonith_api_add_notification;
 
-    new_stonith->cmds->validate              = stonith_api_validate;
+    new_stonith->cmds->validate = stonith_api_validate;
 
     return new_stonith;
 }
