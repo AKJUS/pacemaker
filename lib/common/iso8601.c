@@ -706,14 +706,25 @@ pcmk__time_log_as(const char *file, const char *function, int line,
     free(date_s);
 }
 
+/*!
+ * \internal
+ * \brief Convert a time object's seconds field to hours, minutes, and seconds
+ *
+ * The resulting minutes and seconds are in the range [0, 59]. Accordingly, the
+ * number of hours is \p dt->seconds divided by \c SECONDS_IN_HOUR. See
+ * \c seconds_to_hms().
+ *
+ * \param[in]   dt       Time object
+ * \param[out]  hours    Where to store hours
+ * \param[out]  minutes  Where to store minutes
+ * \param[out]  seconds  If not \c NULL, where to store seconds
+ */
 void
-pcmk__time_get_timeofday(const crm_time_t *dt, uint32_t *hour,
-                         uint32_t *minute, uint32_t *second)
+pcmk__time_get_timeofday(const crm_time_t *dt, uint32_t *hours,
+                         uint32_t *minutes, uint32_t *seconds)
 {
-    pcmk__assert((dt != NULL) && (hour != NULL) && (minute != NULL)
-                 && (second != NULL));
-
-    seconds_to_hms(dt->seconds, hour, minute, second);
+    pcmk__assert((dt != NULL) && (hours != NULL) && (minutes != NULL));
+    seconds_to_hms(dt->seconds, hours, minutes, seconds);
 }
 
 // Time in seconds since 0000-01-01 00:00:00Z
