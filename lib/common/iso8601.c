@@ -784,36 +784,56 @@ crm_time_get_seconds_since_epoch(const crm_time_t *dt)
     return (dt == NULL)? 0 : (pcmk__time_get_seconds(dt) - EPOCH_SECONDS);
 }
 
+/*!
+ * \internal
+ * \brief Convert a time object's years and seconds to year, month, and day
+ *
+ * \param[in]   dt     Time object
+ * \param[out]  year   Where to store year
+ * \param[out]  month  Where to store month
+ * \param[out]  day    Where to store day
+ *
+ * \note This has some incorrect behavior. See FIXME comments, and be mindful of
+ *       public API when fixing these issues.
+ */
 void
 pcmk__time_get_ymd(const crm_time_t *dt, uint32_t *year, uint32_t *month,
                    uint32_t *day)
 {
-    int months = 0;
-    int days = dt->days;
-
     pcmk__assert((dt != NULL) && (year != NULL) && (month != NULL)
                  && (day != NULL));
 
-    if(dt->years != 0) {
-        for (months = 1; months <= 12 && days > 0; months++) {
-            int mdays = days_in_month_year(months, dt->years);
-
-            if (mdays >= days) {
-                break;
-            } else {
-                days -= mdays;
-            }
-        }
-
-    } else {
-        // Don't convert the days field of a duration to months
+    if (dt->years == 0) {
+        /* Assume this to be a duration and return the fields as they are.
+         *
+         * @FIXME This is a longstanding assumption. Nothing guarantees that
+         * this is actually a duration. However, it would be invalid as a date.
+         */
         CRM_LOG_ASSERT(dt->duration);
-        months = dt->months;
+
+        *year = dt->years;
+        *month = dt->months;
+        *day = dt->days;
+        return;
     }
 
     *year = dt->years;
-    *month = months;
-    *day = days;
+    *day = dt->days;
+
+    /* @FIXME This could also be a duration. It's incorrect to convert days to
+     * months in that case.
+     *
+     * @FIXME This could end with *month set to 13.
+     */
+    for (*month = 1; *month <= 12; (*month)++) {
+        int mdays = days_in_month_year(*month, dt->years);
+
+        if (mdays >= *day) {
+            return;
+        }
+
+        *day -= mdays;
+    }
 }
 
 void
