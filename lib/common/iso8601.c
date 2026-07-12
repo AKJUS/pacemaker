@@ -632,6 +632,12 @@ copy_time_to_utc(const crm_time_t *dt)
     utc->seconds = dt->seconds;
     utc->offset = 0;
 
+    /* It makes no sense to convert a duration to UTC, but at time of writing,
+     * there are places where we may do it (for example, via public API
+     * functions).
+     */
+    utc->duration = dt->duration;
+
     if (dt->offset != 0) {
         crm_time_add_seconds(utc, -dt->offset);
 
