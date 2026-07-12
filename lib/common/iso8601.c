@@ -799,12 +799,10 @@ pcmk__time_get_ymd(const crm_time_t *dt, uint32_t *year, uint32_t *month,
             }
         }
 
-    } else if (dt->months) {
-        /* This is a duration including months, don't convert the days field */
-        months = dt->months;
-
     } else {
-        /* This is a duration not including months, still don't convert the days field */
+        // Don't convert the days field of a duration to months
+        CRM_LOG_ASSERT(dt->duration);
+        months = dt->months;
     }
 
     *year = dt->years;
