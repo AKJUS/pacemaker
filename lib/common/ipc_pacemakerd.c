@@ -9,14 +9,19 @@
 
 #include <crm_internal.h>
 
-#include <stdbool.h>
-#include <stdlib.h>
-#include <time.h>
+#include <errno.h>                      // EINVAL, ENOMSG, errno
+#include <stdbool.h>                    // bool, false, true
+#include <stdlib.h>                     // NULL, calloc, atoi, free
 
-#include <crm/crm.h>
+#include <libxml/tree.h>                // xmlNode
+
+#include <crm/common/ipc.h>             // pcmk_ipc_*
+#include <crm/common/ipc_pacemakerd.h>  // pcmk_pacemakerd_state
+#include <crm/common/options.h>         // PCMK_VALUE_REMOTE
+#include <crm/common/results.h>         // CRM_EX_*, pcmk_rc_*
 #include <crm/common/xml.h>
-#include <crm/common/ipc.h>
-#include <crm/common/ipc_pacemakerd.h>
+#include <crm/crm.h>                    // CRM_OP_PING, CRM_OP_QUIT
+
 #include "crmcommon_private.h"
 
 typedef struct {
