@@ -124,9 +124,6 @@ pcmk__attrd_api_methods(void)
         return NULL;
     }
 
-    cmds->new_data = NULL;
-    cmds->free_data = NULL;
-    cmds->post_connect = NULL;
     cmds->reply_expected = reply_expected;
     cmds->dispatch = dispatch;
     return cmds;
