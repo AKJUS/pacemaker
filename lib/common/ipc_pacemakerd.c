@@ -267,17 +267,21 @@ dispatch(pcmk_ipc_api_t *api, xmlNode *reply)
 
         reply_data.data.ping.sys_from =
             pcmk__xe_get(msg_data, PCMK__XA_CRM_SUBSYSTEM);
-    } else if (pcmk__str_eq(value, CRM_OP_QUIT, pcmk__str_none)) {
+
+        goto done;
+    }
+
+    if (pcmk__str_eq(value, CRM_OP_QUIT, pcmk__str_none)) {
         const char *op_status = pcmk__xe_get(msg_data, PCMK__XA_OP_STATUS);
 
         reply_data.reply_type = pcmk_pacemakerd_reply_shutdown;
         reply_data.data.shutdown.status = atoi(op_status);
-    } else {
-        pcmk__info("Unrecognizable message from %s: unknown command '%s'",
-                   pcmk_ipc_name(api, true), pcmk__s(value, ""));
-        status = CRM_EX_PROTOCOL;
         goto done;
     }
+
+    pcmk__info("Unrecognizable message from %s: unknown command '%s'",
+               pcmk_ipc_name(api, true), pcmk__s(value, ""));
+    status = CRM_EX_PROTOCOL;
 
 done:
     pcmk__call_ipc_callback(api, pcmk_ipc_event_reply, status, &reply_data);
@@ -289,14 +293,16 @@ pcmk__pacemakerd_api_methods(void)
 {
     pcmk__ipc_methods_t *cmds = calloc(1, sizeof(pcmk__ipc_methods_t));
 
-    if (cmds != NULL) {
-        cmds->new_data = new_data;
-        cmds->free_data = free_data;
-        cmds->post_connect = post_connect;
-        cmds->reply_expected = reply_expected;
-        cmds->dispatch = dispatch;
-        cmds->post_disconnect = post_disconnect;
+    if (cmds == NULL) {
+        return NULL;
     }
+
+    cmds->new_data = new_data;
+    cmds->free_data = free_data;
+    cmds->post_connect = post_connect;
+    cmds->reply_expected = reply_expected;
+    cmds->dispatch = dispatch;
+    cmds->post_disconnect = post_disconnect;
     return cmds;
 }
 
@@ -322,17 +328,16 @@ do_pacemakerd_api_call(pcmk_ipc_api_t *api, const char *ipc_name, const char *ta
                             CRM_SYSTEM_MCP, task, NULL);
     free(sender_system);
 
-    if (cmd) {
-        rc = pcmk__send_ipc_request(api, cmd);
-        if (rc != pcmk_rc_ok) {
-            pcmk__debug("Couldn't send request to %s: %s rc=%d",
-                        pcmk_ipc_name(api, true), pcmk_rc_str(rc), rc);
-        }
-        pcmk__xml_free(cmd);
-    } else {
-        rc = ENOMSG;
+    if (cmd == NULL) {
+        return ENOMSG;
     }
 
+    rc = pcmk__send_ipc_request(api, cmd);
+    if (rc != pcmk_rc_ok) {
+        pcmk__debug("Couldn't send request to %s: %s rc=%d",
+                    pcmk_ipc_name(api, true), pcmk_rc_str(rc), rc);
+    }
+    pcmk__xml_free(cmd);
     return rc;
 }
 
