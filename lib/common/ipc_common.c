@@ -1,5 +1,5 @@
 /*
- * Copyright 2004-2025 the Pacemaker project contributors
+ * Copyright 2004-2026 the Pacemaker project contributors
  *
  * The version control history for this file may have further details.
  *
@@ -9,12 +9,18 @@
 
 #include <crm_internal.h>
 
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdint.h>         // uint64_t
-#include <sys/types.h>
+#include <errno.h>                // EBADMSG, EINVAL
+#include <inttypes.h>             // PRId32, PRIu16, uint64_t
+#include <stdbool.h>              // bool, false, true
+#include <stdlib.h>               // NULL
 
-#include <crm/common/xml.h>
+#include <glib.h>                 // GByteArray, g_byte_array_append, guint8
+#include <qb/qbipc_common.h>      // qb_ipc_response_header
+
+#include <crm/common/ipc.h>       // crm_ipc_flags
+#include <crm/common/logging.h>   // CRM_CHECK
+#include <crm/common/results.h>   // pcmk_rc_*
+
 #include "crmcommon_private.h"
 
 /* The IPC buffer is always 128k.  If we are asked to send a message larger
