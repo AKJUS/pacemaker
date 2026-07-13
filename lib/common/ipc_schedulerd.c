@@ -148,13 +148,15 @@ pcmk__schedulerd_api_methods(void)
 {
     pcmk__ipc_methods_t *cmds = calloc(1, sizeof(pcmk__ipc_methods_t));
 
-    if (cmds != NULL) {
-        cmds->new_data = new_data;
-        cmds->free_data = free_data;
-        cmds->post_connect = post_connect;
-        cmds->reply_expected = reply_expected;
-        cmds->dispatch = dispatch;
+    if (cmds == NULL) {
+        return NULL;
     }
+
+    cmds->new_data = new_data;
+    cmds->free_data = free_data;
+    cmds->post_connect = post_connect;
+    cmds->reply_expected = reply_expected;
+    cmds->dispatch = dispatch;
     return cmds;
 }
 
@@ -179,18 +181,18 @@ do_schedulerd_api_call(pcmk_ipc_api_t *api, const char *task, xmlNode *cib, char
                             CRM_SYSTEM_PENGINE, task, cib);
     free(sender_system);
 
-    if (cmd) {
-        rc = pcmk__send_ipc_request(api, cmd);
-        if (rc != pcmk_rc_ok) {
-            pcmk__debug("Couldn't send request to schedulerd: %s rc=%d",
-                        pcmk_rc_str(rc), rc);
-        }
-
-        *ref = strdup(pcmk__xe_get(cmd, PCMK_XA_REFERENCE));
-        pcmk__xml_free(cmd);
-    } else {
-        rc = ENOMSG;
+    if (cmd == NULL) {
+        return ENOMSG;
     }
+
+    rc = pcmk__send_ipc_request(api, cmd);
+    if (rc != pcmk_rc_ok) {
+        pcmk__debug("Couldn't send request to schedulerd: %s rc=%d",
+                    pcmk_rc_str(rc), rc);
+    }
+
+    *ref = strdup(pcmk__xe_get(cmd, PCMK_XA_REFERENCE));
+    pcmk__xml_free(cmd);
 
     return rc;
 }
