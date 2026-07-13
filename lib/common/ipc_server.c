@@ -9,17 +9,33 @@
 
 #include <crm_internal.h>
 
-#include <stdbool.h>
-#include <stdio.h>
-#include <errno.h>
-#include <bzlib.h>
-#include <sys/stat.h>
-#include <sys/types.h>
+#include <errno.h>                  // EAGAIN, EINVAL, ENOMEM
+#include <inttypes.h>               // PRId32, uint16_t, uint32_t
+#include <limits.h>                 // UINT_MAX
+#include <stdbool.h>                // bool, false, true
+#include <stdlib.h>                 // NULL, free, calloc, size_t
+#include <string.h>                 // memcpy, strcmp, strndup
+#include <sys/stat.h>               // S_IRGRP, S_IRUSR, S_IWGRP
+#include <sys/types.h>              // gid_t, ssize_t, uid_t
+#include <sys/uio.h>                // iovec
 
-#include <crm/crm.h>
+#include <glib.h>                   // g_hash_table_*
+#include <gnutls/gnutls.h>          // gnutls_deinit
+#include <libxml/tree.h>            // xmlNode
+#include <qb/qbdefs.h>              // QB_MAX
+#include <qb/qbipc_common.h>        // qb_ipc_response_header
+#include <qb/qbipcs.h>              // qb_ipcs_*
+#include <qb/qblog.h>               // QB_XS
+
+#include <crm/common/ipc.h>         // crm_ipc_flags, pcmk_ipc_*
+#include <crm/common/logging.h>     // CRM_CHECK, CRM_LOG_ASSERT
+#include <crm/common/mainloop.h>    // mainloop_add_ipc_server
+#include <crm/common/results.h>     // crm_exit, pcmk_rc_*
 #include <crm/common/xml.h>
-#include <crm/common/ipc.h>
+#include <crm/crm.h>                // CRM_SYSTEM_CRMD
+
 #include "crmcommon_private.h"
+
 
 /* Evict clients whose event queue grows this large (by default) */
 #define PCMK_IPC_DEFAULT_QUEUE_MAX 500
