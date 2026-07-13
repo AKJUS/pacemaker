@@ -327,7 +327,7 @@ static int
 dispatch_ipc_data(const char *buffer, pcmk_ipc_api_t *api)
 {
     bool more = false;
-    xmlNode *msg;
+    xmlNode *msg = NULL;
 
     if (buffer == NULL) {
         pcmk__warn("Empty message received from %s IPC",
@@ -395,7 +395,7 @@ dispatch_ipc_source_data(const char *buffer, ssize_t length, void *user_data)
 int
 pcmk_poll_ipc(const pcmk_ipc_api_t *api, int timeout_ms)
 {
-    int rc;
+    int rc = pcmk_rc_ok;
     struct pollfd pollfd = { 0, };
 
     if ((api == NULL) || (api->dispatch_type != pcmk_ipc_dispatch_poll)) {
@@ -455,7 +455,7 @@ pcmk_dispatch_ipc(pcmk_ipc_api_t *api)
 static int
 connect_with_main_loop(pcmk_ipc_api_t *api)
 {
-    int rc;
+    int rc = pcmk_rc_ok;
 
     struct ipc_client_callbacks callbacks = {
         .dispatch = dispatch_ipc_source_data,
@@ -704,7 +704,7 @@ pcmk_register_ipc_callback(pcmk_ipc_api_t *api, pcmk_ipc_callback_t cb,
 int
 pcmk__send_ipc_request(pcmk_ipc_api_t *api, const xmlNode *request)
 {
-    int rc;
+    int rc = pcmk_rc_ok;
     xmlNode *reply = NULL;
     enum crm_ipc_flags flags = crm_ipc_flags_none;
 
@@ -1107,7 +1107,7 @@ crm_ipc_connected(crm_ipc_t * client)
 int
 crm_ipc_ready(crm_ipc_t *client)
 {
-    int rc;
+    int rc = pcmk_rc_ok;
 
     pcmk__assert(client != NULL);
 
@@ -1130,11 +1130,9 @@ crm_ipc_read(crm_ipc_t *client)
     buffer = g_malloc0(crm_ipc_default_buffer_size());
 
     do {
-        pcmk__ipc_header_t *header = NULL;
         ssize_t bytes = qb_ipcc_event_recv(client->ipc, buffer,
                                            crm_ipc_default_buffer_size(), 0);
-
-        header = (pcmk__ipc_header_t *)(void *) buffer;
+        pcmk__ipc_header_t *header = (pcmk__ipc_header_t *)(void *) buffer;
 
         if (bytes <= 0) {
             pcmk__trace("No message received from %s IPC: %s",
@@ -1727,8 +1725,7 @@ pcmk__ipc_is_authentic_process_active(const char *name, uid_t refuid,
     struct pollfd pollfd = { 0, };
     int poll_rc;
 
-    c = qb_ipcc_connect_async(name, 0,
-                              &(pollfd.fd));
+    c = qb_ipcc_connect_async(name, 0, &(pollfd.fd));
 #else
     c = qb_ipcc_connect(name, 0);
 #endif
