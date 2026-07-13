@@ -163,9 +163,9 @@ pcmk__schedulerd_api_methods(void)
 static int
 do_schedulerd_api_call(pcmk_ipc_api_t *api, const char *task, xmlNode *cib, char **ref)
 {
-    schedulerd_api_private_t *private;
+    schedulerd_api_private_t *private = NULL;
     xmlNode *cmd = NULL;
-    int rc;
+    int rc = pcmk_rc_ok;
     char *sender_system = NULL;
 
     if (!pcmk_ipc_is_connected(api)) {
