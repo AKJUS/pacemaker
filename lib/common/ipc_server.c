@@ -928,26 +928,25 @@ pcmk__ipc_send_xml(pcmk__client_t *c, uint32_t request, const xmlNode *message,
 
                     index++;
                     break;
-
-                } else {
-                    /* EAGAIN is an error for IPC messages.  We don't have a
-                     * send queue for these, so we need to try again.  If there
-                     * was some other error, we need to break out of this loop
-                     * and report it.
-                     *
-                     * FIXME: Retry limit for EAGAIN?
-                     */
-                    if (rc == pcmk_rc_ok) {
-                        index++;
-                        break;
-                    }
-
-                    if (rc == EAGAIN) {
-                        break;
-                    }
-
-                    goto done;
                 }
+
+                /* EAGAIN is an error for IPC messages.  We don't have a
+                 * send queue for these, so we need to try again.  If there
+                 * was some other error, we need to break out of this loop
+                 * and report it.
+                 *
+                 * FIXME: Retry limit for EAGAIN?
+                 */
+                if (rc == pcmk_rc_ok) {
+                    index++;
+                    break;
+                }
+
+                if (rc == EAGAIN) {
+                    break;
+                }
+
+                goto done;
 
             default:
                 /* An error occurred during preparation */
