@@ -111,8 +111,8 @@ post_connect(pcmk_ipc_api_t *api)
      */
     struct controld_api_private_s *private = api->api_data;
     const char *client_name = crm_system_name? crm_system_name : "client";
-    xmlNode *hello;
-    int rc;
+    xmlNode *hello = NULL;
+    int rc = pcmk_rc_ok;
 
     hello = create_hello_message(private->client_uuid, client_name,
                                  PCMK__CONTROLD_API_MAJOR,
@@ -169,7 +169,7 @@ set_ping_data(pcmk_controld_api_reply_t *data, xmlNode *msg_data)
 static void
 set_nodes_data(pcmk_controld_api_reply_t *data, xmlNode *msg_data)
 {
-    pcmk_controld_api_node_t *node_info;
+    pcmk_controld_api_node_t *node_info = NULL;
 
     data->reply_type = pcmk_controld_reply_nodes;
     for (xmlNode *node = pcmk__xe_first_child(msg_data, PCMK_XE_NODE, NULL,
@@ -376,7 +376,7 @@ send_controller_request(pcmk_ipc_api_t *api, const xmlNode *request,
 static xmlNode *
 create_reprobe_message_data(const char *target_node, const char *router_node)
 {
-    xmlNode *msg_data;
+    xmlNode *msg_data = NULL;
 
     msg_data = pcmk__xe_create(NULL, "data_for_" CRM_OP_REPROBE);
     pcmk__xe_set(msg_data, PCMK__META_ON_NODE, target_node);
@@ -400,8 +400,8 @@ int
 pcmk_controld_api_reprobe(pcmk_ipc_api_t *api, const char *target_node,
                           const char *router_node)
 {
-    xmlNode *request;
-    xmlNode *msg_data;
+    xmlNode *request = NULL;
+    xmlNode *msg_data = NULL;
     int rc = pcmk_rc_ok;
 
     if (api == NULL) {
@@ -434,7 +434,7 @@ pcmk_controld_api_reprobe(pcmk_ipc_api_t *api, const char *target_node,
 int
 pcmk_controld_api_node_info(pcmk_ipc_api_t *api, uint32_t nodeid)
 {
-    xmlNode *request;
+    xmlNode *request = NULL;
     int rc = pcmk_rc_ok;
 
     request = create_controller_request(api, CRM_OP_NODE_INFO, NULL, NULL);
@@ -462,7 +462,7 @@ pcmk_controld_api_node_info(pcmk_ipc_api_t *api, uint32_t nodeid)
 int
 pcmk_controld_api_ping(pcmk_ipc_api_t *api, const char *node_name)
 {
-    xmlNode *request;
+    xmlNode *request = NULL;
     int rc = pcmk_rc_ok;
 
     request = create_controller_request(api, CRM_OP_PING, node_name, NULL);
@@ -485,7 +485,7 @@ pcmk_controld_api_ping(pcmk_ipc_api_t *api, const char *node_name)
 int
 pcmk_controld_api_list_nodes(pcmk_ipc_api_t *api)
 {
-    xmlNode *request;
+    xmlNode *request = NULL;
     int rc = EINVAL;
 
     request = create_controller_request(api, PCMK__CONTROLD_CMD_NODES, NULL,
@@ -506,8 +506,11 @@ controller_resource_op(pcmk_ipc_api_t *api, const char *op,
                        const char *provider, const char *type)
 {
     int rc = pcmk_rc_ok;
-    char *key;
-    xmlNode *request, *msg_data, *xml_rsc, *params;
+    char *key = NULL;
+    xmlNode *request = NULL;
+    xmlNode *msg_data = NULL;
+    xmlNode *xml_rsc = NULL;
+    xmlNode *params = NULL;
 
     if (api == NULL) {
         return EINVAL;
