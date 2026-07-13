@@ -131,13 +131,15 @@ pcmk_new_ipc_api(pcmk_ipc_api_t **api, enum pcmk_ipc_server server)
 static void
 free_daemon_specific_data(pcmk_ipc_api_t *api)
 {
-    if ((api != NULL) && (api->cmds != NULL)) {
-        if ((api->cmds->free_data != NULL) && (api->api_data != NULL)) {
-            g_clear_pointer(&api->api_data, api->cmds->free_data);
-        }
-
-        g_clear_pointer(&api->cmds, free);
+    if ((api == NULL) || (api->cmds == NULL)) {
+        return;
     }
+
+    if ((api->cmds->free_data != NULL) && (api->api_data != NULL)) {
+        g_clear_pointer(&api->api_data, api->cmds->free_data);
+    }
+
+    g_clear_pointer(&api->cmds, free);
 }
 
 /*!
@@ -153,9 +155,11 @@ void
 pcmk__call_ipc_callback(pcmk_ipc_api_t *api, enum pcmk_ipc_event event_type,
                         crm_exit_t status, void *event_data)
 {
-    if ((api != NULL) && (api->cb != NULL)) {
-        api->cb(api, event_type, status, event_data, api->user_data);
+    if ((api == NULL) || (api->cb == NULL)) {
+        return;
     }
+
+    api->cb(api, event_type, status, event_data, api->user_data);
 }
 
 /*!
@@ -297,11 +301,11 @@ static bool
 call_api_dispatch(pcmk_ipc_api_t *api, xmlNode *message)
 {
     pcmk__log_xml_trace(message, "ipc-received");
-    if ((api->cmds != NULL) && (api->cmds->dispatch != NULL)) {
-        return api->cmds->dispatch(api, message);
+    if ((api->cmds == NULL) || (api->cmds->dispatch == NULL)) {
+        return false;
     }
 
-    return false;
+    return api->cmds->dispatch(api, message);
 }
 
 /*!
@@ -438,10 +442,12 @@ pcmk_dispatch_ipc(pcmk_ipc_api_t *api)
         return;
     }
     while (crm_ipc_ready(api->ipc) > 0) {
-        if (crm_ipc_read(api->ipc) > 0) {
-            dispatch_ipc_data(crm_ipc_buffer(api->ipc), api);
-            pcmk__ipc_free_client_buffer(api->ipc);
+        if (crm_ipc_read(api->ipc) <= 0) {
+            continue;
         }
+
+        dispatch_ipc_data(crm_ipc_buffer(api->ipc), api);
+        pcmk__ipc_free_client_buffer(api->ipc);
     }
 }
 
@@ -578,12 +584,15 @@ pcmk__connect_ipc(pcmk_ipc_api_t *api, enum pcmk_ipc_dispatch dispatch_type,
         return rc;
     }
 
-    if ((api->cmds != NULL) && (api->cmds->post_connect != NULL)) {
-        rc = api->cmds->post_connect(api);
-        if (rc != pcmk_rc_ok) {
-            crm_ipc_close(api->ipc);
-        }
+    if ((api->cmds == NULL) || (api->cmds->post_connect == NULL)) {
+        return rc;
     }
+
+    rc = api->cmds->post_connect(api);
+    if (rc != pcmk_rc_ok) {
+        crm_ipc_close(api->ipc);
+    }
+
     return rc;
 }
 
@@ -961,64 +970,67 @@ pcmk__connect_generic_ipc(crm_ipc_t *ipc)
 
     rc = is_ipc_provider_expected(ipc->ipc, ipc->pfd.fd, cl_uid, cl_gid,
                                   &found_pid, &found_uid, &found_gid);
-    if (rc != pcmk_rc_ok) {
-        if (rc == pcmk_rc_ipc_unauthorized) {
-            pcmk__info("%s IPC provider authentication failed: process %lld "
-                       "has uid %lld (expected %lld) and gid %lld (expected "
-                       "%lld)",
-                       ipc->server_name,
-                       (long long) PCMK__SPECIAL_PID_AS_0(found_pid),
-                       (long long) found_uid, (long long) cl_uid,
-                       (long long) found_gid, (long long) cl_gid);
-        }
-        crm_ipc_close(ipc);
+    if (rc == pcmk_rc_ok) {
         return rc;
     }
 
-    return pcmk_rc_ok;
+    if (rc == pcmk_rc_ipc_unauthorized) {
+        pcmk__info("%s IPC provider authentication failed: process %lld "
+                   "has uid %lld (expected %lld) and gid %lld (expected "
+                   "%lld)",
+                   ipc->server_name,
+                   (long long) PCMK__SPECIAL_PID_AS_0(found_pid),
+                   (long long) found_uid, (long long) cl_uid,
+                   (long long) found_gid, (long long) cl_gid);
+    }
+    crm_ipc_close(ipc);
+    return rc;
 }
 
 void
 crm_ipc_close(crm_ipc_t * client)
 {
-    if (client) {
-        if (client->ipc) {
-            qb_ipcc_connection_t *ipc = client->ipc;
+    qb_ipcc_connection_t *ipc = NULL;
 
-            client->ipc = NULL;
-            qb_ipcc_disconnect(ipc);
-        }
+    if ((client == NULL) || (client->ipc == NULL)) {
+        return;
     }
+
+    ipc = client->ipc;
+    client->ipc = NULL;
+    qb_ipcc_disconnect(ipc);
 }
 
 void
 crm_ipc_destroy(crm_ipc_t * client)
 {
-    if (client) {
-        if (client->ipc && qb_ipcc_is_connected(client->ipc)) {
-            pcmk__notice("Destroying active %s IPC connection",
-                         client->server_name);
-            /* The next line is basically unsafe
-             *
-             * If this connection was attached to mainloop and mainloop is active,
-             *   the 'disconnected' callback will end up back here and we'll end
-             *   up free'ing the memory twice - something that can still happen
-             *   even without this if we destroy a connection and it closes before
-             *   we call exit
-             */
-            /* crm_ipc_close(client); */
-        } else {
-            pcmk__trace("Destroying inactive %s IPC connection",
-                        client->server_name);
-        }
-
-        if (client->buffer != NULL) {
-            pcmk__ipc_free_client_buffer(client);
-        }
-
-        free(client->server_name);
-        free(client);
+    if (client == NULL) {
+        return;
     }
+
+    if (client->ipc && qb_ipcc_is_connected(client->ipc)) {
+        pcmk__notice("Destroying active %s IPC connection",
+                     client->server_name);
+        /* The next line is basically unsafe
+         *
+         * If this connection was attached to mainloop and mainloop is active,
+         *   the 'disconnected' callback will end up back here and we'll end
+         *   up free'ing the memory twice - something that can still happen
+         *   even without this if we destroy a connection and it closes before
+         *   we call exit
+         */
+        /* crm_ipc_close(client); */
+    } else {
+        pcmk__trace("Destroying inactive %s IPC connection",
+                    client->server_name);
+    }
+
+    if (client->buffer != NULL) {
+        pcmk__ipc_free_client_buffer(client);
+    }
+
+    free(client->server_name);
+    free(client);
 }
 
 /*!
@@ -1048,13 +1060,14 @@ crm_ipc_get_fd(crm_ipc_t * client)
 {
     int fd = -1;
 
-    if (pcmk__ipc_fd(client, &fd) != pcmk_rc_ok) {
-        pcmk__err("Could not obtain file descriptor for %s IPC",
-                  ((client == NULL)? "unspecified" : client->server_name));
-        errno = EINVAL;
-        return -EINVAL;
+    if (pcmk__ipc_fd(client, &fd) == pcmk_rc_ok) {
+        return fd;
     }
-    return fd;
+
+    pcmk__err("Could not obtain file descriptor for %s IPC",
+              ((client == NULL)? "unspecified" : client->server_name));
+    errno = EINVAL;
+    return -EINVAL;
 }
 
 bool
@@ -1179,10 +1192,12 @@ pcmk__ipc_free_client_buffer(crm_ipc_t *client)
 {
     pcmk__assert(client != NULL);
 
-    if (client->buffer != NULL) {
-        g_byte_array_free(client->buffer, TRUE);
-        client->buffer = NULL;
+    if (client->buffer == NULL) {
+        return;
     }
+
+    g_byte_array_free(client->buffer, TRUE);
+    client->buffer = NULL;
 }
 
 const char *
