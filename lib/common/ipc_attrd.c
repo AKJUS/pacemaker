@@ -9,14 +9,21 @@
 
 #include <crm_internal.h>
 
-#include <stdbool.h>
-#include <stdio.h>
+#include <errno.h>                  // ECONNREFUSED, EINVAL
+#include <stdbool.h>                // bool, false, true
+#include <stdint.h>                 // uint32_t
+#include <stdlib.h>                 // NULL, calloc, free
+#include <unistd.h>                 // sleep
 
-#include <libxml/xmlstring.h>               // xmlChar
+#include <glib.h>                   // GList, g_list_free_full
+#include <libxml/tree.h>            // xmlHasProp, xmlNode
+#include <libxml/xmlstring.h>       // xmlChar
 
-#include <crm/crm.h>
-#include <crm/common/ipc.h>
+#include <crm/common/ipc.h>         // pcmk_ipc_*
+#include <crm/common/results.h>     // CRM_EX_*, crm_exit_t, pcmk_rc_*
 #include <crm/common/xml.h>
+#include <crm/crm.h>                // crm_system_name
+
 #include "crmcommon_private.h"
 
 static void
