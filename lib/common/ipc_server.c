@@ -282,7 +282,7 @@ pcmk__new_client(qb_ipcs_connection_t *c, uid_t uid_client, gid_t gid_client)
 static struct iovec *
 pcmk__new_ipc_event(void)
 {
-    return (struct iovec *) pcmk__assert_alloc(2, sizeof(struct iovec));
+    return pcmk__assert_alloc(2, sizeof(struct iovec));
 }
 
 /*!
@@ -305,7 +305,7 @@ pcmk_free_ipc_event(struct iovec *event)
 static void
 free_event(void *data)
 {
-    pcmk_free_ipc_event((struct iovec *) data);
+    pcmk_free_ipc_event(data);
 }
 
 static void

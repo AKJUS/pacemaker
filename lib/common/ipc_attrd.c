@@ -470,7 +470,7 @@ pcmk__attrd_api_update_list(pcmk_ipc_api_t *api, GList *attrs, const char *dampe
      *     as one request or split up according to the minimum supported version.
      */
     for (GList *iter = attrs; iter != NULL; iter = iter->next) {
-        pcmk__attrd_query_pair_t *pair = (pcmk__attrd_query_pair_t *) iter->data;
+        pcmk__attrd_query_pair_t *pair = iter->data;
         const char *target = NULL;
         xmlNode *child = NULL;
 
