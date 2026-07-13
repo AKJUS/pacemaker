@@ -1,3 +1,23 @@
+# Pacemaker-3.0.3-rc1 (10 Jul 2026)
+* 20 commits with 16 files changed, 395 insertions(+), 134 deletions(-)
+
+## Fixes since Pacemaker-3.0.2
+
+* Important security fix for CVE-2026-10649
+* **agents:** Move pid file management into `ClusterMon.in.`
+* **cibadmin:** allow altering status section without triggering refresh
+* **libcrmcommon:** Fix an integer overflow in `pcmk__remote_send_xml.`
+* **libcrmcommon:** Fix checks in `localized_remote_header.`
+* **libcrmcommon:** Fix integer overflow in remote message code.
+* **libcrmcommon:** Limit the max size of a remote message.
+* **liblrmd:** Don't include internal header in lrmd.h
+* **tools:** Handle UTF-8 parameters in `cibsecret.`
+* **tools:** Handle UTF-8 parameters in `crm_resource.`
+
+## Public API changes since Pacemaker-3.0.2
+
+* **liblrmd:** Deprecate `LRMD_SUPPORTS_SCHEMA_XFER()`
+
 # Pacemaker-3.0.2 (01 Jun 2026)
 * 1856 commits with 615 files changed, 39078 insertions(+), 31526 deletions(-)
 
