@@ -117,16 +117,17 @@ pcmk__client_name(const pcmk__client_t *c)
 {
     if (c == NULL) {
         return "(unspecified)";
-
-    } else if (c->name != NULL) {
-        return c->name;
-
-    } else if (c->id != NULL) {
-        return c->id;
-
-    } else {
-        return "(unidentified)";
     }
+
+    if (c->name != NULL) {
+        return c->name;
+    }
+
+    if (c->id != NULL) {
+        return c->id;
+    }
+
+    return "(unidentified)";
 }
 
 void
@@ -742,10 +743,10 @@ id_for_server_event(pcmk__ipc_header_t *header)
     if (pcmk__is_set(header->flags, crm_ipc_multipart)
         && (header->part_id != 0)) {
         return id;
-    } else {
-        id++;
-        return id;
     }
+
+    id++;
+    return id;
 }
 
 int
@@ -939,11 +940,13 @@ pcmk__ipc_send_xml(pcmk__client_t *c, uint32_t request, const xmlNode *message,
                     if (rc == pcmk_rc_ok) {
                         index++;
                         break;
-                    } else if (rc == EAGAIN) {
-                        break;
-                    } else {
-                        goto done;
                     }
+
+                    if (rc == EAGAIN) {
+                        break;
+                    }
+
+                    goto done;
                 }
 
             default:
