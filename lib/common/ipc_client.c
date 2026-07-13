@@ -1093,27 +1093,28 @@ crm_ipc_get_fd(crm_ipc_t * client)
 bool
 crm_ipc_connected(crm_ipc_t * client)
 {
-    bool rc = FALSE;
+    bool rc = false;
 
     if (client == NULL) {
         pcmk__trace("No client");
-        return FALSE;
+        return false;
     }
 
     if (client->ipc == NULL) {
         pcmk__trace("No connection");
-        return FALSE;
+        return false;
     }
 
     if (client->pfd.fd < 0) {
         pcmk__trace("Bad descriptor");
-        return FALSE;
+        return false;
     }
 
     rc = qb_ipcc_is_connected(client->ipc);
-    if (rc == FALSE) {
+    if (!rc) {
         client->pfd.fd = -EINVAL;
     }
+
     return rc;
 }
 
