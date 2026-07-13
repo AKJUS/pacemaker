@@ -29,16 +29,14 @@
 static void
 set_pairs_data(pcmk__attrd_api_reply_t *data, xmlNode *msg_data)
 {
-    const char *name = NULL;
-    pcmk__attrd_query_pair_t *pair;
-
-    name = pcmk__xe_get(msg_data, PCMK__XA_ATTR_NAME);
+    const char *name = pcmk__xe_get(msg_data, PCMK__XA_ATTR_NAME);
 
     for (xmlNode *node = pcmk__xe_first_child(msg_data, PCMK_XE_NODE, NULL,
                                               NULL);
          node != NULL; node = pcmk__xe_next(node, PCMK_XE_NODE)) {
 
-        pair = pcmk__assert_alloc(1, sizeof(pcmk__attrd_query_pair_t));
+        pcmk__attrd_query_pair_t *pair =
+            pcmk__assert_alloc(1, sizeof(pcmk__attrd_query_pair_t));
 
         pair->node = pcmk__xe_get(node, PCMK__XA_ATTR_HOST);
         pair->name = name;
