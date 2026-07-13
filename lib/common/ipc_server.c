@@ -193,7 +193,7 @@ client_from_connection(qb_ipcs_connection_t *c, void *key, uid_t uid_client)
 {
     pcmk__client_t *client = pcmk__assert_alloc(1, sizeof(pcmk__client_t));
 
-    if (c) {
+    if (c != NULL) {
         client->user = pcmk__uid2username(uid_client);
         if (client->user == NULL) {
             client->user = pcmk__str_copy("#unprivileged");
@@ -319,8 +319,8 @@ pcmk__free_client(pcmk__client_t *c)
         return;
     }
 
-    if (client_connections) {
-        if (c->ipcs) {
+    if (client_connections != NULL) {
+        if (c->ipcs != NULL) {
             pcmk__trace("Destroying %p/%p (%u remaining)", c, c->ipcs,
                         (g_hash_table_size(client_connections) - 1));
             g_hash_table_remove(client_connections, c->ipcs);
@@ -332,11 +332,11 @@ pcmk__free_client(pcmk__client_t *c)
         }
     }
 
-    if (c->event_timer) {
+    if (c->event_timer != 0) {
         g_source_remove(c->event_timer);
     }
 
-    if (c->event_queue) {
+    if (c->event_queue != NULL) {
         pcmk__debug("Destroying %d events", g_queue_get_length(c->event_queue));
         g_queue_free_full(c->event_queue, free_event);
     }
@@ -350,8 +350,8 @@ pcmk__free_client(pcmk__client_t *c)
         c->buffer = NULL;
     }
 
-    if (c->remote) {
-        if (c->remote->auth_timeout) {
+    if (c->remote != NULL) {
+        if (c->remote->auth_timeout != 0) {
             g_source_remove(c->remote->auth_timeout);
         }
         if (c->remote->tls_session != NULL) {
@@ -440,11 +440,11 @@ pcmk__client_data2xml(pcmk__client_t *c, uint32_t *id, uint32_t *flags)
         return NULL;
     }
 
-    if (id) {
+    if (id != NULL) {
         *id = header->qb.id;
     }
 
-    if (flags) {
+    if (flags != NULL) {
         *flags = header->flags;
     }
 
