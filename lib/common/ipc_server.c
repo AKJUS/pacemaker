@@ -201,22 +201,27 @@ client_from_connection(qb_ipcs_connection_t *c, void *key, uid_t uid_client)
                       "unprivileged",
                       uid_client);
         }
+
         client->ipcs = c;
         pcmk__set_client_flags(client, pcmk__client_ipc);
         client->pid = pcmk__client_pid(c);
+
         if (key == NULL) {
             key = c;
         }
     }
 
     client->id = pcmk__generate_uuid();
+
     if (key == NULL) {
         key = client->id;
     }
+
     if (client_connections == NULL) {
         pcmk__trace("Creating IPC client table");
         client_connections = g_hash_table_new(g_direct_hash, g_direct_equal);
     }
+
     g_hash_table_insert(client_connections, key, client);
     return client;
 }
@@ -354,15 +359,18 @@ pcmk__free_client(pcmk__client_t *c)
         if (c->remote->auth_timeout != 0) {
             g_source_remove(c->remote->auth_timeout);
         }
+
         if (c->remote->tls_session != NULL) {
             /* @TODO Reduce duplication at callers. Put here everything
              * necessary to tear down and free tls_session.
              */
             gnutls_deinit(c->remote->tls_session);
         }
+
         free(c->remote->buffer);
         free(c->remote);
     }
+
     free(c);
 }
 
@@ -386,6 +394,7 @@ pcmk__set_client_queue_max(pcmk__client_t *client, const char *qmax)
 
     if (pcmk__is_set(client->flags, pcmk__client_privileged)) {
         rc = pcmk__scan_ll(qmax, &qmax_ll, 0LL);
+
         if (rc == pcmk_rc_ok) {
             if ((qmax_ll <= 0LL) || (qmax_ll > UINT_MAX)) {
                 rc = ERANGE;
@@ -393,6 +402,7 @@ pcmk__set_client_queue_max(pcmk__client_t *client, const char *qmax)
                 client->queue_max = (unsigned int) qmax_ll;
             }
         }
+
     } else {
         rc = EACCES;
     }
@@ -1038,10 +1048,12 @@ pcmk__ipc_send_ack_as(const char *function, int line, pcmk__client_t *c,
     pcmk__trace("Ack'ing IPC message from client %s as <" PCMK__XE_ACK
                 " status=%d>",
                 pcmk__client_name(c), status);
+
     pcmk__log_xml_trace(ack, "sent-ack");
     c->request_id = 0;
     rc = pcmk__ipc_send_xml(c, request, ack, flags);
     pcmk__xml_free(ack);
+
     return rc;
 }
 
@@ -1212,6 +1224,7 @@ pcmk__serve_pacemakerd_ipc(qb_ipcs_service_t **ipcs,
                    pcmk__server_log_name(pcmk_ipc_pacemakerd));
         pcmk__crit("Verify pacemaker and pacemaker_remote are not both "
                    "enabled");
+
         /* sub-daemons are observed by pacemakerd. Thus we exit CRM_EX_FATAL
          * if we want to prevent pacemakerd from restarting them.
          * With pacemakerd we leave the exit-code shown to e.g. systemd
