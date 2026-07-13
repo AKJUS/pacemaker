@@ -206,7 +206,7 @@ pcmk__attrd_api_clear_failures(pcmk_ipc_api_t *api, const char *node,
         node = target;
     }
 
-    if (operation) {
+    if (operation != NULL) {
         interval_desc = pcmk__s(interval_spec, "nonrecurring");
         op_desc = operation;
     } else {
