@@ -95,6 +95,7 @@ dispatch(pcmk_ipc_api_t *api, xmlNode *reply)
             status = ENXIO; // Most likely, the attribute doesn't exist
             goto done;
         }
+
         reply_data.reply_type = pcmk__attrd_reply_query;
         set_pairs_data(&reply_data, reply);
 
@@ -165,7 +166,9 @@ connect_and_send_attrd_request(pcmk_ipc_api_t *api, const xmlNode *request)
         if (rc != pcmk_rc_ok) {
             return rc;
         }
+
         created_api = true;
+
     } else {
         dispatch = api->dispatch_type;
     }
@@ -177,16 +180,19 @@ connect_and_send_attrd_request(pcmk_ipc_api_t *api, const xmlNode *request)
         if (rc == ENOTCONN || rc == ECONNREFUSED) {
             sleep(max_retries - remaining_attempts);
         }
+
         rc = pcmk__connect_ipc(api, dispatch, remaining_attempts);
         if (rc == pcmk_rc_ok) {
             rc = pcmk__send_ipc_request(api, request);
         }
+
         remaining_attempts--;
     } while ((rc == ENOTCONN || rc == ECONNREFUSED) && remaining_attempts >= 0);
 
     if (created_api) {
         pcmk_free_ipc_api(api);
     }
+
     return rc;
 }
 
@@ -213,6 +219,7 @@ pcmk__attrd_api_clear_failures(pcmk_ipc_api_t *api, const char *node,
         interval_desc = "all";
         op_desc = "operations";
     }
+
     pcmk__debug("Asking %s to clear failure of %s %s for %s on %s",
                 pcmk_ipc_name(api, true), interval_desc, op_desc,
                 pcmk__s(resource, "all resources"),
