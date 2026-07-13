@@ -54,13 +54,15 @@ pcmk__valid_ipc_header(const pcmk__ipc_header_t *header)
     if (header == NULL) {
         pcmk__err("IPC message without header");
         return false;
+    }
 
-    } else if (header->version > PCMK__IPC_VERSION) {
+    if (header->version > PCMK__IPC_VERSION) {
         pcmk__err("Filtering incompatible v%d IPC message (only versions <= %d "
                   "supported)",
                   header->version, PCMK__IPC_VERSION);
         return false;
     }
+
     return true;
 }
 
