@@ -42,17 +42,16 @@ static const char *pacemakerd_state_str[] = {
 enum pcmk_pacemakerd_state
 pcmk_pacemakerd_api_daemon_state_text2enum(const char *state)
 {
-    int i;
-
     if (state == NULL) {
         return pcmk_pacemakerd_state_invalid;
     }
-    for (i=pcmk_pacemakerd_state_init; i <= pcmk_pacemakerd_state_max;
-         i++) {
+
+    for (int i = pcmk_pacemakerd_state_init; i <= pcmk_pacemakerd_state_max; i++) {
         if (pcmk__str_eq(state, pacemakerd_state_str[i], pcmk__str_none)) {
             return i;
         }
     }
+
     return pcmk_pacemakerd_state_invalid;
 }
 
@@ -311,8 +310,8 @@ do_pacemakerd_api_call(pcmk_ipc_api_t *api, const char *ipc_name, const char *ta
 {
     pacemakerd_api_private_t *private;
     char *sender_system = NULL;
-    xmlNode *cmd;
-    int rc;
+    xmlNode *cmd = NULL;
+    int rc = pcmk_rc_ok;
 
     if (api == NULL) {
         return EINVAL;
