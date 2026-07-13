@@ -131,10 +131,11 @@ post_connect(pcmk_ipc_api_t *api)
 static void
 set_node_info_data(pcmk_controld_api_reply_t *data, xmlNode *msg_data)
 {
-    data->reply_type = pcmk_controld_reply_info;
     if (msg_data == NULL) {
         return;
     }
+
+    data->reply_type = pcmk_controld_reply_info;
     data->data.node_info.have_quorum =
         pcmk__xe_attr_is_true(msg_data, PCMK_XA_HAVE_QUORUM);
     data->data.node_info.is_remote =
@@ -155,10 +156,11 @@ set_node_info_data(pcmk_controld_api_reply_t *data, xmlNode *msg_data)
 static void
 set_ping_data(pcmk_controld_api_reply_t *data, xmlNode *msg_data)
 {
-    data->reply_type = pcmk_controld_reply_ping;
     if (msg_data == NULL) {
         return;
     }
+
+    data->reply_type = pcmk_controld_reply_ping;
     data->data.ping.sys_from = pcmk__xe_get(msg_data, PCMK__XA_CRM_SUBSYSTEM);
     data->data.ping.fsa_state = pcmk__xe_get(msg_data, PCMK__XA_CRMD_STATE);
     data->data.ping.result = pcmk__xe_get(msg_data, PCMK_XA_RESULT);
@@ -306,13 +308,15 @@ pcmk__controld_api_methods(void)
 {
     pcmk__ipc_methods_t *cmds = calloc(1, sizeof(pcmk__ipc_methods_t));
 
-    if (cmds != NULL) {
-        cmds->new_data = new_data;
-        cmds->free_data = free_data;
-        cmds->post_connect = post_connect;
-        cmds->reply_expected = reply_expected;
-        cmds->dispatch = dispatch;
+    if (cmds == NULL) {
+        return NULL;
     }
+
+    cmds->new_data = new_data;
+    cmds->free_data = free_data;
+    cmds->post_connect = post_connect;
+    cmds->reply_expected = reply_expected;
+    cmds->dispatch = dispatch;
     return cmds;
 }
 
