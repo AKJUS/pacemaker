@@ -105,6 +105,7 @@ pcmk_new_ipc_api(pcmk_ipc_api_t **api, enum pcmk_ipc_server server)
             g_clear_pointer(api, pcmk_free_ipc_api);
             return EINVAL;
     }
+
     if ((*api)->cmds == NULL) {
         g_clear_pointer(api, pcmk_free_ipc_api);
         return ENOMEM;
@@ -217,6 +218,7 @@ pcmk_free_ipc_api(pcmk_ipc_api_t *api)
     if (api == NULL) {
         return;
     }
+
     pcmk__debug("Releasing %s IPC API", pcmk_ipc_name(api, true));
 
     if (api->ipc != NULL) {
@@ -232,8 +234,10 @@ pcmk_free_ipc_api(pcmk_ipc_api_t *api)
              */
             free_on_disconnect = api->free_on_disconnect = true;
         }
+
         pcmk_disconnect_ipc(api); // Frees api if free_on_disconnect is true
     }
+
     if (!free_on_disconnect) {
         free_daemon_specific_data(api);
         pcmk__trace("Freeing IPC API object");
@@ -256,11 +260,13 @@ pcmk_ipc_name(const pcmk_ipc_api_t *api, bool for_log)
     if (api == NULL) {
         return for_log? "Pacemaker" : NULL;
     }
+
     if (for_log) {
         const char *name = pcmk__server_log_name(api->server);
 
         return pcmk__s(name, "Pacemaker");
     }
+
     switch (api->server) {
         // These servers do not have pcmk_ipc_api_t implementations yet
         case pcmk_ipc_based:
@@ -441,6 +447,7 @@ pcmk_dispatch_ipc(pcmk_ipc_api_t *api)
     if (api == NULL) {
         return;
     }
+
     while (crm_ipc_ready(api->ipc) > 0) {
         if (crm_ipc_read(api->ipc) <= 0) {
             continue;
@@ -467,8 +474,10 @@ connect_with_main_loop(pcmk_ipc_api_t *api)
     if (rc != pcmk_rc_ok) {
         return rc;
     }
+
     pcmk__debug("Connected to %s IPC (attached to main loop)",
                 pcmk_ipc_name(api, true));
+
     /* After this point, api->mainloop_io owns api->ipc, so api->ipc
      * should not be explicitly freed.
      */
@@ -487,6 +496,7 @@ connect_without_main_loop(pcmk_ipc_api_t *api)
         pcmk__debug("Connected to %s IPC (without main loop)",
                     pcmk_ipc_name(api, true));
     }
+
     return rc;
 }
 
@@ -513,6 +523,7 @@ pcmk__connect_ipc_retry_conrefused(pcmk_ipc_api_t *api,
         if (rc == ECONNREFUSED) {
             pcmk__sleep_ms((attempts - remaining) * 500);
         }
+
         rc = pcmk__connect_ipc(api, dispatch_type, remaining);
         remaining--;
     } while (rc == ECONNREFUSED && remaining >= 0);
@@ -557,6 +568,7 @@ pcmk__connect_ipc(pcmk_ipc_api_t *api, enum pcmk_ipc_dispatch dispatch_type,
 
     pcmk__debug("Attempting connection to %s (up to %d time%s)",
                 pcmk_ipc_name(api, true), attempts, pcmk__plural_s(attempts));
+
     for (int remaining = attempts - 1; remaining >= 0; --remaining) {
         switch (dispatch_type) {
             case pcmk_ipc_dispatch_main:
@@ -613,6 +625,7 @@ pcmk_connect_ipc(pcmk_ipc_api_t *api, enum pcmk_ipc_dispatch dispatch_type)
         pcmk__err("Connection to %s failed: %s", pcmk_ipc_name(api, true),
                   pcmk_rc_str(rc));
     }
+
     return rc;
 }
 
@@ -633,6 +646,7 @@ pcmk_disconnect_ipc(pcmk_ipc_api_t *api)
     if ((api == NULL) || (api->ipc == NULL)) {
         return;
     }
+
     switch (api->dispatch_type) {
         case pcmk_ipc_dispatch_main:
             {
@@ -685,6 +699,7 @@ pcmk_register_ipc_callback(pcmk_ipc_api_t *api, pcmk_ipc_callback_t cb,
     if (api == NULL) {
         return;
     }
+
     api->cb = cb;
     api->user_data = user_data;
 }
@@ -834,6 +849,7 @@ create_purge_node_request(const pcmk_ipc_api_t *api, const char *node_name,
         default: // pcmk_ipc_unknown (shouldn't be possible)
             return NULL;
     }
+
     return request;
 }
 
@@ -857,6 +873,7 @@ pcmk_ipc_purge_node(pcmk_ipc_api_t *api, const char *node_name, uint32_t nodeid)
     if (api == NULL) {
         return EINVAL;
     }
+
     if ((node_name == NULL) && (nodeid == 0)) {
         return EINVAL;
     }
@@ -865,6 +882,7 @@ pcmk_ipc_purge_node(pcmk_ipc_api_t *api, const char *node_name, uint32_t nodeid)
     if (request == NULL) {
         return EOPNOTSUPP;
     }
+
     rc = pcmk__send_ipc_request(api, request);
     pcmk__xml_free(request);
 
@@ -1048,9 +1066,11 @@ pcmk__ipc_fd(crm_ipc_t *ipc, int *fd)
     if ((ipc == NULL) || (fd == NULL)) {
         return EINVAL;
     }
+
     if ((ipc->ipc == NULL) || (ipc->pfd.fd < 0)) {
         return ENOTCONN;
     }
+
     *fd = ipc->pfd.fd;
     return pcmk_rc_ok;
 }
@@ -1314,6 +1334,7 @@ internal_ipc_get_reply(crm_ipc_t *client, int request_id, int ms_timeout,
         pcmk__trace("%s reply to %s IPC %d: %s " QB_XS " rc=%d",
                     (client->buffer == NULL) ? "No" : "Incomplete",
                     client->server_name, request_id, pcmk_rc_str(rc), rc);
+
     } else if ((client->buffer != NULL) && (client->buffer->len > 0)) {
         pcmk__trace("Received %u-byte reply %d to %s IPC %d: %.100s",
                     client->buffer->len, reply_id, client->server_name,
@@ -1729,11 +1750,13 @@ pcmk__ipc_is_authentic_process_active(const char *name, uid_t refuid,
 #else
     c = qb_ipcc_connect(name, 0);
 #endif
+
     if (c == NULL) {
         pcmk__info("Could not connect to %s IPC: %s", name, strerror(errno));
         rc = pcmk_rc_ipc_unresponsive;
         goto bail;
     }
+
 #ifdef HAVE_QB_IPCC_CONNECT_ASYNC
     pollfd.events = POLLIN;
     do {
