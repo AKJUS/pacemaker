@@ -130,6 +130,7 @@ dispatch(pcmk_ipc_api_t *api, xmlNode *reply)
         reply_data.data.graph.input = pcmk__xe_get(reply,
                                                    PCMK__XA_CRM_TGRAPH_IN);
         reply_data.data.graph.tgraph = msg_data;
+
     } else {
         pcmk__info("Unrecognizable message from schedulerd: unknown command "
                    "'%s'",
@@ -193,7 +194,6 @@ do_schedulerd_api_call(pcmk_ipc_api_t *api, const char *task, xmlNode *cib, char
 
     *ref = strdup(pcmk__xe_get(cmd, PCMK_XA_REFERENCE));
     pcmk__xml_free(cmd);
-
     return rc;
 }
 
