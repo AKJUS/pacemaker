@@ -9,14 +9,18 @@
 
 #include <crm_internal.h>
 
-#include <stdbool.h>
-#include <stdlib.h>
-#include <time.h>
+#include <errno.h>                      // EINVAL, ENOMSG, ENOTCONN
+#include <stdbool.h>                    // bool, false
+#include <stdlib.h>                     // NULL, calloc, free
+#include <string.h>                     // strdup
 
-#include <crm/crm.h>
-#include <crm/common/xml.h>
-#include <crm/common/ipc.h>
+#include <libxml/tree.h>                // xmlNode
+
+#include <crm/common/ipc.h>             // pcmk_ipc_*
 #include <crm/common/ipc_schedulerd.h>
+#include <crm/common/results.h>         // CRM_EX_*, pcmk_rc_*
+#include <crm/common/xml.h>
+#include <crm/crm.h>                    // CRM_OP_PECALC, CRM_SYSTEM_PENGINE
 
 #include "crmcommon_private.h"
 
