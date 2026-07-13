@@ -68,37 +68,43 @@ pcmk__foreach_ipc_client(GHFunc func, void *user_data)
 {
     pcmk__assert(func != NULL);
 
-    if (client_connections != NULL) {
-        g_hash_table_foreach(client_connections, func, user_data);
+    if (client_connections == NULL) {
+        return;
     }
+
+    g_hash_table_foreach(client_connections, func, user_data);
 }
 
 pcmk__client_t *
 pcmk__find_client(const qb_ipcs_connection_t *c)
 {
-    if (client_connections) {
-        return g_hash_table_lookup(client_connections, c);
+    if (client_connections == NULL) {
+        pcmk__trace("No client found for %p", c);
+        return NULL;
     }
 
-    pcmk__trace("No client found for %p", c);
-    return NULL;
+    return g_hash_table_lookup(client_connections, c);
 }
 
 pcmk__client_t *
 pcmk__find_client_by_id(const char *id)
 {
-    if ((client_connections != NULL) && (id != NULL)) {
-        void *key = NULL;
-        pcmk__client_t *client = NULL;
-        GHashTableIter iter;
+    void *key = NULL;
+    pcmk__client_t *client = NULL;
+    GHashTableIter iter;
 
-        g_hash_table_iter_init(&iter, client_connections);
-        while (g_hash_table_iter_next(&iter, &key, (void **) &client)) {
-            if (strcmp(client->id, id) == 0) {
-                return client;
-            }
+    if ((client_connections == NULL) || (id == NULL)) {
+        goto not_found;
+    }
+
+    g_hash_table_iter_init(&iter, client_connections);
+    while (g_hash_table_iter_next(&iter, &key, (void **) &client)) {
+        if (strcmp(client->id, id) == 0) {
+            return client;
         }
     }
+
+not_found:
     pcmk__trace("No client found with id='%s'", pcmk__s(id, ""));
     return NULL;
 }
@@ -133,15 +139,19 @@ pcmk__client_name(const pcmk__client_t *c)
 void
 pcmk__client_cleanup(void)
 {
-    if (client_connections != NULL) {
-        int active = g_hash_table_size(client_connections);
+    int active = 0;
 
-        if (active > 0) {
-            pcmk__warn("Exiting with %d active IPC client%s", active,
-                       pcmk__plural_s(active));
-        }
-        g_clear_pointer(&client_connections, g_hash_table_destroy);
+    if (client_connections == NULL) {
+        return;
     }
+
+    active = g_hash_table_size(client_connections);
+
+    if (active > 0) {
+        pcmk__warn("Exiting with %d active IPC client%s", active,
+                   pcmk__plural_s(active));
+    }
+    g_clear_pointer(&client_connections, g_hash_table_destroy);
 }
 
 void
@@ -278,11 +288,13 @@ pcmk__new_ipc_event(void)
 void
 pcmk_free_ipc_event(struct iovec *event)
 {
-    if (event != NULL) {
-        free(event[0].iov_base);
-        free(event[1].iov_base);
-        free(event);
+    if (event == NULL) {
+        return;
     }
+
+    free(event[0].iov_base);
+    free(event[1].iov_base);
+    free(event);
 }
 
 static void
