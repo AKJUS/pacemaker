@@ -121,13 +121,15 @@ pcmk__attrd_api_methods(void)
 {
     pcmk__ipc_methods_t *cmds = calloc(1, sizeof(pcmk__ipc_methods_t));
 
-    if (cmds != NULL) {
-        cmds->new_data = NULL;
-        cmds->free_data = NULL;
-        cmds->post_connect = NULL;
-        cmds->reply_expected = reply_expected;
-        cmds->dispatch = dispatch;
+    if (cmds == NULL) {
+        return NULL;
     }
+
+    cmds->new_data = NULL;
+    cmds->free_data = NULL;
+    cmds->post_connect = NULL;
+    cmds->reply_expected = reply_expected;
+    cmds->dispatch = dispatch;
     return cmds;
 }
 
@@ -464,35 +466,35 @@ pcmk__attrd_api_update_list(pcmk_ipc_api_t *api, GList *attrs, const char *dampe
      */
     for (GList *iter = attrs; iter != NULL; iter = iter->next) {
         pcmk__attrd_query_pair_t *pair = (pcmk__attrd_query_pair_t *) iter->data;
+        const char *target = NULL;
+        xmlNode *child = NULL;
 
-        if (pcmk__is_daemon) {
-            const char *target = NULL;
-            xmlNode *child = NULL;
-
-            /* First time through this loop - create the basic request. */
-            if (request == NULL) {
-                request = create_attrd_op(user_name);
-                add_op_attr(request, options);
-            }
-
-            /* Add a child node for this operation.  We add the task to the top
-             * level XML node so attrd_ipc_dispatch doesn't need changes.  And
-             * then we also add the task to each child node in populate_update_op
-             * so attrd_client_update knows what form of update is taking place.
-             */
-            child = pcmk__xe_create(request, PCMK_XE_OP);
-            target = pcmk__node_attr_target(pair->node);
-
-            if (target != NULL) {
-                pair->node = target;
-            }
-
-            populate_update_op(child, pair->node, pair->name, pair->value, dampen,
-                               set, options);
-        } else {
+        if (!pcmk__is_daemon) {
             rc = pcmk__attrd_api_update(api, pair->node, pair->name, pair->value,
                                         dampen, set, user_name, options);
+            continue;
         }
+
+        /* First time through this loop - create the basic request. */
+        if (request == NULL) {
+            request = create_attrd_op(user_name);
+            add_op_attr(request, options);
+        }
+
+        /* Add a child node for this operation.  We add the task to the top
+         * level XML node so attrd_ipc_dispatch doesn't need changes.  And
+         * then we also add the task to each child node in populate_update_op
+         * so attrd_client_update knows what form of update is taking place.
+         */
+        child = pcmk__xe_create(request, PCMK_XE_OP);
+        target = pcmk__node_attr_target(pair->node);
+
+        if (target != NULL) {
+            pair->node = target;
+        }
+
+        populate_update_op(child, pair->node, pair->name, pair->value, dampen,
+                           set, options);
     }
 
     /* If we were doing multiple attributes at once, we still need to send the
