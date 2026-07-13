@@ -343,9 +343,9 @@ dispatch_ipc_data(const char *buffer, pcmk_ipc_api_t *api)
 
     if (more) {
         return EINPROGRESS;
-    } else {
-        return pcmk_rc_ok;
     }
+
+    return pcmk_rc_ok;
 }
 
 /*!
@@ -412,9 +412,12 @@ pcmk_poll_ipc(const pcmk_ipc_api_t *api, int timeout_ms)
          * allocate memory; standardize the return code in that case
          */
         return (errno == EAGAIN)? ENOMEM : errno;
-    } else if (rc == 0) {
+    }
+
+    if (rc == 0) {
         return EAGAIN;
     }
+
     return pcmk_rc_ok;
 }
 
@@ -718,7 +721,9 @@ pcmk__send_ipc_request(pcmk_ipc_api_t *api, const xmlNode *request)
 
     if (rc < 0) {
         return pcmk_legacy2rc(rc);
-    } else if (rc == 0) {
+    }
+
+    if (rc == 0) {
         return ENODATA;
     }
 
@@ -733,9 +738,13 @@ pcmk__send_ipc_request(pcmk_ipc_api_t *api, const xmlNode *request)
 
             if (rc == -EAGAIN) {
                 continue;
-            } else if (rc == -ENOMSG || rc == pcmk_ok) {
+            }
+
+            if (rc == -ENOMSG || rc == pcmk_ok) {
                 return pcmk_rc_ok;
-            } else if (rc < 0) {
+            }
+
+            if (rc < 0) {
                 return -rc;
             }
 
@@ -1056,12 +1065,14 @@ crm_ipc_connected(crm_ipc_t * client)
     if (client == NULL) {
         pcmk__trace("No client");
         return FALSE;
+    }
 
-    } else if (client->ipc == NULL) {
+    if (client->ipc == NULL) {
         pcmk__trace("No connection");
         return FALSE;
+    }
 
-    } else if (client->pfd.fd < 0) {
+    if (client->pfd.fd < 0) {
         pcmk__trace("Bad descriptor");
         return FALSE;
     }
@@ -1142,13 +1153,15 @@ crm_ipc_read(crm_ipc_t *client)
 
         if (rc == pcmk_rc_ok) {
             break;
-        } else if (rc == pcmk_rc_ipc_more) {
-            continue;
-        } else {
-            pcmk__ipc_free_client_buffer(client);
-            rc = pcmk_rc2legacy(rc);
-            goto done;
         }
+
+        if (rc == pcmk_rc_ipc_more) {
+            continue;
+        }
+
+        pcmk__ipc_free_client_buffer(client);
+        rc = pcmk_rc2legacy(rc);
+        goto done;
     } while (true);
 
     if (client->buffer->len > 0) {
@@ -1242,8 +1255,9 @@ internal_ipc_get_reply(crm_ipc_t *client, int request_id, int ms_timeout,
             }
 
             continue;
+        }
 
-        } else if (*bytes != hdr->size + sizeof(pcmk__ipc_header_t)) {
+        if (*bytes != hdr->size + sizeof(pcmk__ipc_header_t)) {
             pcmk__err("Message size does not match header");
             *bytes = -EBADMSG;
             break;
@@ -1257,11 +1271,13 @@ internal_ipc_get_reply(crm_ipc_t *client, int request_id, int ms_timeout,
 
             if (rc == pcmk_rc_ok) {
                 break;
-            } else if (rc == pcmk_rc_ipc_more) {
-                continue;
-            } else {
-                goto done;
             }
+
+            if (rc == pcmk_rc_ipc_more) {
+                continue;
+            }
+
+            goto done;
         }
 
         data = buffer + sizeof(pcmk__ipc_header_t);
@@ -1382,8 +1398,9 @@ crm_ipc_send(crm_ipc_t *client, const xmlNode *message,
         pcmk__notice("Can't send IPC request without connection (bug?): %.100s",
                      message);
         return -ENOTCONN;
+    }
 
-    } else if (!crm_ipc_connected(client)) {
+    if (!crm_ipc_connected(client)) {
         /* Don't even bother */
         pcmk__notice("Can't send %s IPC requests: Connection closed",
                      client->server_name);
@@ -1478,15 +1495,15 @@ crm_ipc_send(crm_ipc_t *client, const xmlNode *message,
             sent_bytes += qb_rc;
             rc = (int) sent_bytes;
             break;
-        } else {
-            /* There's no way to get here for any value other than rc == pcmk_rc_more
-             * given the check right after pcmk__ipc_prepare_iov.
-             *
-             * This was a multipart message, loop to process the next chunk.
-             */
-            sent_bytes += qb_rc;
-            index++;
         }
+
+        /* There's no way to get here for any value other than rc == pcmk_rc_more
+         * given the check right after pcmk__ipc_prepare_iov.
+         *
+         * This was a multipart message, loop to process the next chunk.
+         */
+        sent_bytes += qb_rc;
+        index++;
 
         g_clear_pointer(&iov, pcmk_free_ipc_event);
     } while (true);
@@ -1671,11 +1688,13 @@ crm_ipc_is_authentic_process(int sock, uid_t refuid, gid_t refgid,
     /* The old function had some very odd return codes*/
     if (ret == 0) {
         return 1;
-    } else if (ret == pcmk_rc_ipc_unauthorized) {
-        return 0;
-    } else {
-        return pcmk_rc2legacy(ret);
     }
+
+    if (ret == pcmk_rc_ipc_unauthorized) {
+        return 0;
+    }
+
+    return pcmk_rc2legacy(ret);
 }
 
 int
