@@ -251,8 +251,8 @@ pcmk__attrd_api_delete(pcmk_ipc_api_t *api, const char *node, const char *name,
     }
 
     /* Make sure the right update option is set. */
-    options &= ~pcmk__node_attr_delay;
-    options |= pcmk__node_attr_value;
+    pcmk__clear_node_attr_flags(options, pcmk__node_attr_delay);
+    pcmk__set_node_attr_flags(options, pcmk__node_attr_value);
 
     return pcmk__attrd_api_update(api, node, name, NULL, NULL, NULL, NULL, options);
 }
