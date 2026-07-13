@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2025 the Pacemaker project contributors
+ * Copyright 2020-2026 the Pacemaker project contributors
  *
  * The version control history for this file may have further details.
  *
@@ -9,18 +9,25 @@
 
 #include <crm_internal.h>
 
-#include <errno.h>
-#include <inttypes.h>                   // PRIu32
-#include <stdbool.h>
+#include <errno.h>                      // EINVAL, errno
+#include <stdbool.h>                    // bool, false, true
 #include <stdint.h>                     // uint32_t
-#include <stdio.h>
+#include <stdlib.h>                     // NULL, calloc, free
+#include <string.h>                     // strcmp
+#include <unistd.h>                     // getpid
 
-#include <libxml/tree.h>
+#include <glib.h>                       // g_list_*
+#include <libxml/tree.h>                // xmlNode
+#include <qb/qblog.h>                   // QB_XS
 
-#include <crm/crm.h>
+#include <crm/common/ipc.h>             // pcmk_ipc_*
+#include <crm/common/ipc_controld.h>    // pcmk_controld_api_*
+#include <crm/common/nvpair.h>          // crm_meta_name
+#include <crm/common/options.h>         // PCMK_META_TIMEOUT
+#include <crm/common/results.h>         // CRM_EX_*, pcmk_rc_*
 #include <crm/common/xml.h>
-#include <crm/common/ipc.h>
-#include <crm/common/ipc_controld.h>
+#include <crm/crm.h>                    // CRM_OP_*
+
 #include "crmcommon_private.h"
 
 struct controld_api_private_s {
