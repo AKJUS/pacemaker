@@ -9,21 +9,35 @@
 
 #include <crm_internal.h>
 
+#include <errno.h>                  // E*, errno
+#include <inttypes.h>               // PRId32, int32_t, uint32_t
+#include <limits.h>                 // PATH_MAX
+#include <poll.h>                   // POLLIN, pollfd, poll
+#include <stdbool.h>                // bool, false, true
+#include <stdlib.h>                 // NULL, calloc, free, size_t
+#include <string.h>                 // memccpy, strdup, strerror
 #if defined(HAVE_UCRED) || defined(HAVE_SOCKPEERCRED)
-#include <sys/socket.h>
+#include <sys/socket.h>             // getsockopt, ucred, SOL_SOCKET
 #elif defined(HAVE_GETPEERUCRED)
 #include <ucred.h>
 #endif
+#include <sys/types.h>              // gid_t, uid_t, pid_t
+#include <sys/uio.h>                // iovec
+#include <time.h>                   // time
 
-#include <stdbool.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <errno.h>
-#include <bzlib.h>
+#include <glib.h>                   // FALSE, guint8, g_clear_pointer
+#include <libxml/tree.h>            // xmlNode
+#include <qb/qbipc_common.h>        // qb_ipc_response_header
+#include <qb/qbipcc.h>              // qb_ipcc_connection_t
+#include <qb/qblog.h>               // QB_XS
 
-#include <crm/crm.h>   /* indirectly: pcmk_err_generic */
+#include <crm/common/ipc.h>         // crm_ipc_t, pcmk_ipc_api_t
+#include <crm/common/logging.h>     // CRM_CHECK, crm_write_blackbox
+#include <crm/common/mainloop.h>    // mainloop_del_ipc_client
+#include <crm/common/results.h>     // pcmk_rc_*, pcmk_rc_str
 #include <crm/common/xml.h>
-#include <crm/common/ipc.h>
+#include <crm/crm.h>                // CRM_OP_RM_NODE_CACHE, crm_system_name
+
 #include "crmcommon_private.h"
 
 static int is_ipc_provider_expected(qb_ipcc_connection_t *qb_ipc, int sock,
