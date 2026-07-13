@@ -56,13 +56,13 @@ pcmk_pacemakerd_api_daemon_state_text2enum(const char *state)
 }
 
 const char *
-pcmk_pacemakerd_api_daemon_state_enum2text(
-    enum pcmk_pacemakerd_state state)
+pcmk_pacemakerd_api_daemon_state_enum2text(enum pcmk_pacemakerd_state state)
 {
     if ((state >= pcmk_pacemakerd_state_init) &&
         (state <= pcmk_pacemakerd_state_max)) {
         return pacemakerd_state_str[state];
     }
+
     return "invalid";
 }
 
@@ -161,6 +161,7 @@ post_connect(pcmk_ipc_api_t *api)
     if (api->api_data == NULL) {
         return EINVAL;
     }
+
     private = api->api_data;
     private->state = pcmk_pacemakerd_state_invalid;
 
@@ -175,6 +176,7 @@ post_disconnect(pcmk_ipc_api_t *api)
     if (api->api_data == NULL) {
         return;
     }
+
     private = api->api_data;
     private->state = pcmk_pacemakerd_state_invalid;
 }
@@ -213,6 +215,7 @@ dispatch(pcmk_ipc_api_t *api, xmlNode *reply)
                        "(bug?)",
                        pcmk_ipc_name(api, true), pcmk__s(status, ""));
         }
+
         return ack_status == CRM_EX_INDETERMINATE;
     }
 
@@ -336,6 +339,7 @@ do_pacemakerd_api_call(pcmk_ipc_api_t *api, const char *ipc_name, const char *ta
         pcmk__debug("Couldn't send request to %s: %s rc=%d",
                     pcmk_ipc_name(api, true), pcmk_rc_str(rc), rc);
     }
+
     pcmk__xml_free(cmd);
     return rc;
 }
