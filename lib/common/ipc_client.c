@@ -1029,15 +1029,6 @@ crm_ipc_destroy(crm_ipc_t * client)
     if (client->ipc && qb_ipcc_is_connected(client->ipc)) {
         pcmk__notice("Destroying active %s IPC connection",
                      client->server_name);
-        /* The next line is basically unsafe
-         *
-         * If this connection was attached to mainloop and mainloop is active,
-         *   the 'disconnected' callback will end up back here and we'll end
-         *   up free'ing the memory twice - something that can still happen
-         *   even without this if we destroy a connection and it closes before
-         *   we call exit
-         */
-        /* crm_ipc_close(client); */
     } else {
         pcmk__trace("Destroying inactive %s IPC connection",
                     client->server_name);
