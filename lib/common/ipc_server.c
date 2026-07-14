@@ -1053,16 +1053,28 @@ pcmk__serve_based_ipc(qb_ipcs_service_t **ipcs_ro, qb_ipcs_service_t **ipcs_rw,
  * \internal
  * \brief Add an IPC server to the main loop for the controller API
  *
- * \param[in] cb  IPC callbacks
+ * \param[out] ipcs  Where to store newly created IPC server
+ * \param[in]  cb    IPC callbacks
  *
- * \return Newly created IPC server
+ * \note This function does not exit fatally on error as the other similar
+ *       functions do. The controller registers an error if this function fails,
+ *       causing the controller to shut down and inhibit respawn.
  */
-qb_ipcs_service_t *
-pcmk__serve_controld_ipc(struct qb_ipcs_service_handlers *cb)
+void
+pcmk__serve_controld_ipc(qb_ipcs_service_t **ipcs,
+                         struct qb_ipcs_service_handlers *cb)
 {
-    pcmk__assert(cb != NULL);
+    pcmk__assert((ipcs != NULL) && (*ipcs == NULL) && (cb != NULL));
 
-    return mainloop_add_ipc_server(CRM_SYSTEM_CRMD, QB_IPC_SHM, cb);
+    *ipcs = mainloop_add_ipc_server(pcmk__server_ipc_name(pcmk_ipc_controld),
+                                    QB_IPC_SHM, cb);
+
+    if (*ipcs == NULL) {
+        pcmk__crit("Failed to create %s IPC server; shutting down",
+                   pcmk__server_log_name(pcmk_ipc_controld));
+        pcmk__warn("Verify pacemaker and pacemaker_remote are not both "
+                   "enabled");
+    }
 }
 
 /*!

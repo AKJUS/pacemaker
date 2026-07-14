@@ -468,7 +468,7 @@ do_started(long long action, enum crmd_fsa_cause cause,
     }
 
     pcmk__debug("Initializing IPC server");
-    ipcs = pcmk__serve_controld_ipc(&crmd_callbacks);
+    pcmk__serve_controld_ipc(&ipcs, &crmd_callbacks);
 
     if (ipcs == NULL) {
         pcmk__err("Failed to create IPC server: shutting down and inhibiting "

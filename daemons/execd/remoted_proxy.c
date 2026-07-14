@@ -522,16 +522,15 @@ ipc_proxy_init(void)
     pcmk__serve_based_ipc(&cib_ro, &cib_rw, &cib_proxy_callbacks_ro,
                           &cib_proxy_callbacks_rw);
     pcmk__serve_attrd_ipc(&attrd_ipcs, &attrd_proxy_callbacks);
-    pcmk__serve_fenced_ipc(&fencer_ipcs, &fencer_proxy_callbacks);
-    pcmk__serve_pacemakerd_ipc(&pacemakerd_ipcs, &pacemakerd_proxy_callbacks);
-    crmd_ipcs = pcmk__serve_controld_ipc(&crmd_proxy_callbacks);
+
+    pcmk__serve_controld_ipc(&crmd_ipcs, &crmd_proxy_callbacks);
     if (crmd_ipcs == NULL) {
-        pcmk__err("Failed to create controller: exiting and inhibiting "
-                  "respawn");
-        pcmk__warn("Verify pacemaker and pacemaker_remote are not both "
-                   "enabled");
+        // Error already logged
         crm_exit(CRM_EX_FATAL);
     }
+
+    pcmk__serve_fenced_ipc(&fencer_ipcs, &fencer_proxy_callbacks);
+    pcmk__serve_pacemakerd_ipc(&pacemakerd_ipcs, &pacemakerd_proxy_callbacks);
 }
 
 void
