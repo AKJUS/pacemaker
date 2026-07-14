@@ -32,7 +32,7 @@ static qb_ipcs_service_t *cib_ro = NULL;
 static qb_ipcs_service_t *cib_rw = NULL;
 
 static qb_ipcs_service_t *attrd_ipcs = NULL;
-static qb_ipcs_service_t *crmd_ipcs = NULL;
+static qb_ipcs_service_t *controld_ipcs = NULL;
 static qb_ipcs_service_t *fencer_ipcs = NULL;
 static qb_ipcs_service_t *pacemakerd_ipcs = NULL;
 
@@ -523,8 +523,8 @@ ipc_proxy_init(void)
                           &cib_proxy_callbacks_rw);
     pcmk__serve_attrd_ipc(&attrd_ipcs, &attrd_proxy_callbacks);
 
-    pcmk__serve_controld_ipc(&crmd_ipcs, &crmd_proxy_callbacks);
-    if (crmd_ipcs == NULL) {
+    pcmk__serve_controld_ipc(&controld_ipcs, &crmd_proxy_callbacks);
+    if (controld_ipcs == NULL) {
         // Error already logged
         crm_exit(CRM_EX_FATAL);
     }
@@ -542,7 +542,7 @@ ipc_proxy_cleanup(void)
     g_clear_pointer(&attrd_ipcs, qb_ipcs_destroy);
     g_clear_pointer(&cib_ro, qb_ipcs_destroy);
     g_clear_pointer(&cib_rw, qb_ipcs_destroy);
-    g_clear_pointer(&crmd_ipcs, qb_ipcs_destroy);
+    g_clear_pointer(&controld_ipcs, qb_ipcs_destroy);
     g_clear_pointer(&fencer_ipcs, qb_ipcs_destroy);
     g_clear_pointer(&pacemakerd_ipcs, qb_ipcs_destroy);
 }
