@@ -1030,10 +1030,7 @@ crm_ipc_destroy(crm_ipc_t * client)
                     client->server_name);
     }
 
-    if (client->buffer != NULL) {
-        pcmk__ipc_free_client_buffer(client);
-    }
-
+    pcmk__ipc_free_client_buffer(client);
     free(client->server_name);
     free(client);
 }
