@@ -1077,8 +1077,6 @@ crm_ipc_get_fd(crm_ipc_t * client)
 bool
 crm_ipc_connected(crm_ipc_t * client)
 {
-    bool rc = false;
-
     if (client == NULL) {
         pcmk__trace("No client");
         return false;
@@ -1094,12 +1092,12 @@ crm_ipc_connected(crm_ipc_t * client)
         return false;
     }
 
-    rc = qb_ipcc_is_connected(client->ipc);
-    if (!rc) {
+    if (!qb_ipcc_is_connected(client->ipc)) {
         client->pfd.fd = -EINVAL;
+        return false;
     }
 
-    return rc;
+    return true;
 }
 
 /*!
