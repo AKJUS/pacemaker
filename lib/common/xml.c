@@ -225,8 +225,8 @@ pcmk__mark_xml_node_dirty(xmlNode *xml)
  *
  * \note This is compatible with \c pcmk__xml_tree_foreach().
  */
-bool
-pcmk__xml_reset_node_flags(xmlNode *xml, void *user_data)
+static bool
+reset_node_flags(xmlNode *xml, void *user_data)
 {
     xml_node_private_t *nodepriv = xml->_private;
 
@@ -613,7 +613,7 @@ marked_as_deleted(const xmlAttr *attr, void *user_data)
 static bool
 commit_attr_deletions(xmlNode *xml, void *user_data)
 {
-    pcmk__xml_reset_node_flags(xml, NULL);
+    reset_node_flags(xml, NULL);
     pcmk__xe_remove_matching_attrs(xml, true, marked_as_deleted, NULL);
     return true;
 }
@@ -1071,7 +1071,7 @@ pcmk__xml_replace_with_copy(xmlNode *old, xmlNode *new)
     pcmk__assert(old != NULL);
 
     // May be unnecessary but avoids slight changes to some test outputs
-    pcmk__xml_tree_foreach(new_copy, pcmk__xml_reset_node_flags, NULL);
+    pcmk__xml_tree_foreach(new_copy, reset_node_flags, NULL);
 
     if (pcmk__xml_doc_all_flags_set(new_copy->doc, pcmk__xf_tracking)) {
         // Replaced sections may have included relevant ACLs
@@ -1583,7 +1583,7 @@ mark_child_deleted(xmlNode *old_child, xmlNode *new_parent)
     xmlNode *candidate = pcmk__xml_copy(new_parent, old_child);
 
     // Clear flags on new child and its children
-    pcmk__xml_tree_foreach(candidate, pcmk__xml_reset_node_flags, NULL);
+    pcmk__xml_tree_foreach(candidate, reset_node_flags, NULL);
 
     // free_xml_with_position() will check whether ACLs allow the deletion
     pcmk__apply_acls(candidate->doc);
