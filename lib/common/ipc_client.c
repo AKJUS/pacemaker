@@ -136,7 +136,7 @@ free_daemon_specific_data(pcmk_ipc_api_t *api)
         return;
     }
 
-    if ((api->cmds->free_data != NULL) && (api->api_data != NULL)) {
+    if (api->cmds->free_data != NULL) {
         g_clear_pointer(&api->api_data, api->cmds->free_data);
     }
 
@@ -1008,15 +1008,11 @@ pcmk__connect_generic_ipc(crm_ipc_t *ipc)
 void
 crm_ipc_close(crm_ipc_t * client)
 {
-    qb_ipcc_connection_t *ipc = NULL;
-
-    if ((client == NULL) || (client->ipc == NULL)) {
+    if (client == NULL) {
         return;
     }
 
-    ipc = client->ipc;
-    client->ipc = NULL;
-    qb_ipcc_disconnect(ipc);
+    g_clear_pointer(&client->ipc, qb_ipcc_disconnect);
 }
 
 void
