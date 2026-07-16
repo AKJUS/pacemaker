@@ -1137,7 +1137,7 @@ crm_ipc_read(crm_ipc_t *client)
     do {
         ssize_t bytes = qb_ipcc_event_recv(client->ipc, buffer,
                                            crm_ipc_default_buffer_size(), 0);
-        pcmk__ipc_header_t *header = (pcmk__ipc_header_t *)(void *) buffer;
+        pcmk__ipc_header_t *header = (void *) buffer;
 
         if (bytes <= 0) {
             pcmk__trace("No message received from %s IPC: %s",
@@ -1221,7 +1221,7 @@ crm_ipc_buffer_flags(crm_ipc_t * client)
         return 0;
     }
 
-    header = (pcmk__ipc_header_t *)(void*) client->buffer->data;
+    header = (void *) client->buffer->data;
     return header->flags;
 }
 
@@ -1262,7 +1262,7 @@ internal_ipc_get_reply(crm_ipc_t *client, int request_id, int ms_timeout,
         *bytes = qb_ipcc_recv(client->ipc, buffer, crm_ipc_default_buffer_size(),
                               qb_timeout);
 
-        hdr = (pcmk__ipc_header_t *) (void *) buffer;
+        hdr = (void *) buffer;
 
         if (*bytes <= 0) {
             if (!crm_ipc_connected(client)) {
@@ -1364,7 +1364,7 @@ discard_old_replies(crm_ipc_t *client, int32_t ms_timeout)
         goto done;
     }
 
-    header = (pcmk__ipc_header_t *)(void *) buffer;
+    header = (void *) buffer;
 
     if (!pcmk__valid_ipc_header(header)) {
         rc = EBADMSG;

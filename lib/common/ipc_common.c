@@ -109,7 +109,7 @@ int
 pcmk__ipc_msg_append(GByteArray **buffer, guint8 *data)
 {
     pcmk__ipc_header_t *full_header = NULL;
-    pcmk__ipc_header_t *header = (pcmk__ipc_header_t *) (void *) data;
+    pcmk__ipc_header_t *header = (void *) data;
     const guint8 *payload = (guint8 *) data + sizeof(pcmk__ipc_header_t);
     int rc = pcmk_rc_ok;
 
@@ -118,7 +118,7 @@ pcmk__ipc_msg_append(GByteArray **buffer, guint8 *data)
     }
 
     if (pcmk__is_set(header->flags, crm_ipc_multipart_end)) {
-        full_header = (pcmk__ipc_header_t *) (void *) (*buffer)->data;
+        full_header = (void *) (*buffer)->data;
 
         /* This is the end of a multipart IPC message.  Add the payload of the
          * received data (so, don't include the header) to the partial buffer.
@@ -155,7 +155,7 @@ pcmk__ipc_msg_append(GByteArray **buffer, guint8 *data)
                                 sizeof(pcmk__ipc_header_t) + header->size - 1);
 
         } else {
-            full_header = (pcmk__ipc_header_t *) (void *) (*buffer)->data;
+            full_header = (void *) (*buffer)->data;
 
             /* This is some intermediate part of a multipart message.  Add
              * the payload of the received data (so, don't include the header)
@@ -193,7 +193,7 @@ pcmk__ipc_msg_append(GByteArray **buffer, guint8 *data)
     /* The buffer's header should have a size that matches the full size of
      * the received message, not just the last chunk of it.
      */
-    full_header = (pcmk__ipc_header_t *) (void *) (*buffer)->data;
+    full_header = (void *) (*buffer)->data;
     full_header->size = (*buffer)->len - sizeof(pcmk__ipc_header_t);
 
     return rc;
