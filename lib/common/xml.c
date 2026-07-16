@@ -601,9 +601,30 @@ marked_as_deleted(const xmlAttr *attr, void *user_data)
 
 /*!
  * \internal
- * \brief Remove all attributes marked as deleted from an XML node
+ * \brief Clear flags on an XML attribute
  *
- * \param[in,out] xml        XML node whose deleted attributes to remove
+ * \param[in,out] xml        XML attribute whose flags to reset
+ * \param[in,out] user_data  Ignored
+ *
+ * \return \c true (to continue iterating)
+ *
+ * \note This is compatible with \c pcmk__xe_foreach_attr().
+ */
+static bool
+reset_attr_flags(xmlAttr *attr, void *user_data)
+{
+    reset_node_flags((xmlNode *) attr, user_data);
+    return true;
+}
+
+/*!
+ * \internal
+ * \brief Commit an XML node's attribute deletions
+ *
+ * This clears the node's flags, deletes any of its attributes that have the
+ * \c pcmk__xf_deleted flag set, and clears the remaining attributes' flags.
+ *
+ * \param[in,out] xml        XML node whose attribute deletions to commit
  * \param[in,out] user_data  Ignored
  *
  * \return \c true (to continue traversing the tree)
@@ -615,6 +636,7 @@ commit_attr_deletions(xmlNode *xml, void *user_data)
 {
     reset_node_flags(xml, NULL);
     pcmk__xe_remove_matching_attrs(xml, true, marked_as_deleted, NULL);
+    pcmk__xe_foreach_attr(xml, reset_attr_flags, NULL);
     return true;
 }
 
@@ -623,8 +645,8 @@ commit_attr_deletions(xmlNode *xml, void *user_data)
  * \brief Finalize all pending changes to an XML document and reset private data
  *
  * Clear the ACL user and all flags, unpacked ACLs, and deleted node records for
- * the document; clear all flags on each node in the tree; and delete any
- * attributes that are marked for deletion.
+ * the document; clear all flags on each node in the tree; delete any attributes
+ * that are marked for deletion; and clear flags for the remaining attributes.
  *
  * \param[in,out] doc  XML document
  *
