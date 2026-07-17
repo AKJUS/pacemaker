@@ -9,14 +9,18 @@
 
 #include <crm_internal.h>
 
-#include <stdbool.h>
-#include <stdlib.h>
-#include <time.h>
+#include <errno.h>                      // EINVAL, ENOMSG, ENOTCONN
+#include <stdbool.h>                    // bool, false
+#include <stdlib.h>                     // NULL, calloc, free
+#include <string.h>                     // strdup
 
-#include <crm/crm.h>
-#include <crm/common/xml.h>
-#include <crm/common/ipc.h>
+#include <libxml/tree.h>                // xmlNode
+
+#include <crm/common/ipc.h>             // pcmk_ipc_*
 #include <crm/common/ipc_schedulerd.h>
+#include <crm/common/results.h>         // CRM_EX_*, pcmk_rc_*
+#include <crm/common/xml.h>
+#include <crm/crm.h>                    // CRM_OP_PECALC, CRM_SYSTEM_PENGINE
 
 #include "crmcommon_private.h"
 
@@ -126,6 +130,7 @@ dispatch(pcmk_ipc_api_t *api, xmlNode *reply)
         reply_data.data.graph.input = pcmk__xe_get(reply,
                                                    PCMK__XA_CRM_TGRAPH_IN);
         reply_data.data.graph.tgraph = msg_data;
+
     } else {
         pcmk__info("Unrecognizable message from schedulerd: unknown command "
                    "'%s'",
@@ -144,22 +149,24 @@ pcmk__schedulerd_api_methods(void)
 {
     pcmk__ipc_methods_t *cmds = calloc(1, sizeof(pcmk__ipc_methods_t));
 
-    if (cmds != NULL) {
-        cmds->new_data = new_data;
-        cmds->free_data = free_data;
-        cmds->post_connect = post_connect;
-        cmds->reply_expected = reply_expected;
-        cmds->dispatch = dispatch;
+    if (cmds == NULL) {
+        return NULL;
     }
+
+    cmds->new_data = new_data;
+    cmds->free_data = free_data;
+    cmds->post_connect = post_connect;
+    cmds->reply_expected = reply_expected;
+    cmds->dispatch = dispatch;
     return cmds;
 }
 
 static int
 do_schedulerd_api_call(pcmk_ipc_api_t *api, const char *task, xmlNode *cib, char **ref)
 {
-    schedulerd_api_private_t *private;
+    schedulerd_api_private_t *private = NULL;
     xmlNode *cmd = NULL;
-    int rc;
+    int rc = pcmk_rc_ok;
     char *sender_system = NULL;
 
     if (!pcmk_ipc_is_connected(api)) {
@@ -175,19 +182,18 @@ do_schedulerd_api_call(pcmk_ipc_api_t *api, const char *task, xmlNode *cib, char
                             CRM_SYSTEM_PENGINE, task, cib);
     free(sender_system);
 
-    if (cmd) {
-        rc = pcmk__send_ipc_request(api, cmd);
-        if (rc != pcmk_rc_ok) {
-            pcmk__debug("Couldn't send request to schedulerd: %s rc=%d",
-                        pcmk_rc_str(rc), rc);
-        }
-
-        *ref = strdup(pcmk__xe_get(cmd, PCMK_XA_REFERENCE));
-        pcmk__xml_free(cmd);
-    } else {
-        rc = ENOMSG;
+    if (cmd == NULL) {
+        return ENOMSG;
     }
 
+    rc = pcmk__send_ipc_request(api, cmd);
+    if (rc != pcmk_rc_ok) {
+        pcmk__debug("Couldn't send request to schedulerd: %s rc=%d",
+                    pcmk_rc_str(rc), rc);
+    }
+
+    *ref = strdup(pcmk__xe_get(cmd, PCMK_XA_REFERENCE));
+    pcmk__xml_free(cmd);
     return rc;
 }
 

@@ -9,29 +9,34 @@
 
 #include <crm_internal.h>
 
-#include <stdbool.h>
-#include <stdio.h>
+#include <errno.h>                  // ECONNREFUSED, EINVAL
+#include <stdbool.h>                // bool, false, true
+#include <stdint.h>                 // uint32_t
+#include <stdlib.h>                 // NULL, calloc, free
+#include <unistd.h>                 // sleep
 
-#include <libxml/xmlstring.h>               // xmlChar
+#include <glib.h>                   // GList, g_list_free_full
+#include <libxml/tree.h>            // xmlHasProp, xmlNode
+#include <libxml/xmlstring.h>       // xmlChar
 
-#include <crm/crm.h>
-#include <crm/common/ipc.h>
+#include <crm/common/ipc.h>         // pcmk_ipc_*
+#include <crm/common/results.h>     // CRM_EX_*, crm_exit_t, pcmk_rc_*
 #include <crm/common/xml.h>
+#include <crm/crm.h>                // crm_system_name
+
 #include "crmcommon_private.h"
 
 static void
 set_pairs_data(pcmk__attrd_api_reply_t *data, xmlNode *msg_data)
 {
-    const char *name = NULL;
-    pcmk__attrd_query_pair_t *pair;
-
-    name = pcmk__xe_get(msg_data, PCMK__XA_ATTR_NAME);
+    const char *name = pcmk__xe_get(msg_data, PCMK__XA_ATTR_NAME);
 
     for (xmlNode *node = pcmk__xe_first_child(msg_data, PCMK_XE_NODE, NULL,
                                               NULL);
          node != NULL; node = pcmk__xe_next(node, PCMK_XE_NODE)) {
 
-        pair = pcmk__assert_alloc(1, sizeof(pcmk__attrd_query_pair_t));
+        pcmk__attrd_query_pair_t *pair =
+            pcmk__assert_alloc(1, sizeof(pcmk__attrd_query_pair_t));
 
         pair->node = pcmk__xe_get(node, PCMK__XA_ATTR_HOST);
         pair->name = name;
@@ -90,6 +95,7 @@ dispatch(pcmk_ipc_api_t *api, xmlNode *reply)
             status = ENXIO; // Most likely, the attribute doesn't exist
             goto done;
         }
+
         reply_data.reply_type = pcmk__attrd_reply_query;
         set_pairs_data(&reply_data, reply);
 
@@ -114,13 +120,12 @@ pcmk__attrd_api_methods(void)
 {
     pcmk__ipc_methods_t *cmds = calloc(1, sizeof(pcmk__ipc_methods_t));
 
-    if (cmds != NULL) {
-        cmds->new_data = NULL;
-        cmds->free_data = NULL;
-        cmds->post_connect = NULL;
-        cmds->reply_expected = reply_expected;
-        cmds->dispatch = dispatch;
+    if (cmds == NULL) {
+        return NULL;
     }
+
+    cmds->reply_expected = reply_expected;
+    cmds->dispatch = dispatch;
     return cmds;
 }
 
@@ -158,7 +163,9 @@ connect_and_send_attrd_request(pcmk_ipc_api_t *api, const xmlNode *request)
         if (rc != pcmk_rc_ok) {
             return rc;
         }
+
         created_api = true;
+
     } else {
         dispatch = api->dispatch_type;
     }
@@ -170,16 +177,19 @@ connect_and_send_attrd_request(pcmk_ipc_api_t *api, const xmlNode *request)
         if (rc == ENOTCONN || rc == ECONNREFUSED) {
             sleep(max_retries - remaining_attempts);
         }
+
         rc = pcmk__connect_ipc(api, dispatch, remaining_attempts);
         if (rc == pcmk_rc_ok) {
             rc = pcmk__send_ipc_request(api, request);
         }
+
         remaining_attempts--;
     } while ((rc == ENOTCONN || rc == ECONNREFUSED) && remaining_attempts >= 0);
 
     if (created_api) {
         pcmk_free_ipc_api(api);
     }
+
     return rc;
 }
 
@@ -199,13 +209,14 @@ pcmk__attrd_api_clear_failures(pcmk_ipc_api_t *api, const char *node,
         node = target;
     }
 
-    if (operation) {
+    if (operation != NULL) {
         interval_desc = pcmk__s(interval_spec, "nonrecurring");
         op_desc = operation;
     } else {
         interval_desc = "all";
         op_desc = "operations";
     }
+
     pcmk__debug("Asking %s to clear failure of %s %s for %s on %s",
                 pcmk_ipc_name(api, true), interval_desc, op_desc,
                 pcmk__s(resource, "all resources"),
@@ -242,8 +253,8 @@ pcmk__attrd_api_delete(pcmk_ipc_api_t *api, const char *node, const char *name,
     }
 
     /* Make sure the right update option is set. */
-    options &= ~pcmk__node_attr_delay;
-    options |= pcmk__node_attr_value;
+    pcmk__clear_node_attr_flags(options, pcmk__node_attr_delay);
+    pcmk__set_node_attr_flags(options, pcmk__node_attr_value);
 
     return pcmk__attrd_api_update(api, node, name, NULL, NULL, NULL, NULL, options);
 }
@@ -456,36 +467,36 @@ pcmk__attrd_api_update_list(pcmk_ipc_api_t *api, GList *attrs, const char *dampe
      *     as one request or split up according to the minimum supported version.
      */
     for (GList *iter = attrs; iter != NULL; iter = iter->next) {
-        pcmk__attrd_query_pair_t *pair = (pcmk__attrd_query_pair_t *) iter->data;
+        pcmk__attrd_query_pair_t *pair = iter->data;
+        const char *target = NULL;
+        xmlNode *child = NULL;
 
-        if (pcmk__is_daemon) {
-            const char *target = NULL;
-            xmlNode *child = NULL;
-
-            /* First time through this loop - create the basic request. */
-            if (request == NULL) {
-                request = create_attrd_op(user_name);
-                add_op_attr(request, options);
-            }
-
-            /* Add a child node for this operation.  We add the task to the top
-             * level XML node so attrd_ipc_dispatch doesn't need changes.  And
-             * then we also add the task to each child node in populate_update_op
-             * so attrd_client_update knows what form of update is taking place.
-             */
-            child = pcmk__xe_create(request, PCMK_XE_OP);
-            target = pcmk__node_attr_target(pair->node);
-
-            if (target != NULL) {
-                pair->node = target;
-            }
-
-            populate_update_op(child, pair->node, pair->name, pair->value, dampen,
-                               set, options);
-        } else {
+        if (!pcmk__is_daemon) {
             rc = pcmk__attrd_api_update(api, pair->node, pair->name, pair->value,
                                         dampen, set, user_name, options);
+            continue;
         }
+
+        /* First time through this loop - create the basic request. */
+        if (request == NULL) {
+            request = create_attrd_op(user_name);
+            add_op_attr(request, options);
+        }
+
+        /* Add a child node for this operation.  We add the task to the top
+         * level XML node so attrd_ipc_dispatch doesn't need changes.  And
+         * then we also add the task to each child node in populate_update_op
+         * so attrd_client_update knows what form of update is taking place.
+         */
+        child = pcmk__xe_create(request, PCMK_XE_OP);
+        target = pcmk__node_attr_target(pair->node);
+
+        if (target != NULL) {
+            pair->node = target;
+        }
+
+        populate_update_op(child, pair->node, pair->name, pair->value, dampen,
+                           set, options);
     }
 
     /* If we were doing multiple attributes at once, we still need to send the

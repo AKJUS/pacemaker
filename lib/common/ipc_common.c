@@ -1,5 +1,5 @@
 /*
- * Copyright 2004-2025 the Pacemaker project contributors
+ * Copyright 2004-2026 the Pacemaker project contributors
  *
  * The version control history for this file may have further details.
  *
@@ -9,12 +9,18 @@
 
 #include <crm_internal.h>
 
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdint.h>         // uint64_t
-#include <sys/types.h>
+#include <errno.h>                // EBADMSG, EINVAL
+#include <inttypes.h>             // PRId32, PRIu16, uint64_t
+#include <stdbool.h>              // bool, false, true
+#include <stdlib.h>               // NULL
 
-#include <crm/common/xml.h>
+#include <glib.h>                 // GByteArray, g_byte_array_append, guint8
+#include <qb/qbipc_common.h>      // qb_ipc_response_header
+
+#include <crm/common/ipc.h>       // crm_ipc_flags
+#include <crm/common/logging.h>   // CRM_CHECK
+#include <crm/common/results.h>   // pcmk_rc_*
+
 #include "crmcommon_private.h"
 
 /* The IPC buffer is always 128k.  If we are asked to send a message larger
@@ -48,13 +54,15 @@ pcmk__valid_ipc_header(const pcmk__ipc_header_t *header)
     if (header == NULL) {
         pcmk__err("IPC message without header");
         return false;
+    }
 
-    } else if (header->version > PCMK__IPC_VERSION) {
+    if (header->version > PCMK__IPC_VERSION) {
         pcmk__err("Filtering incompatible v%d IPC message (only versions <= %d "
                   "supported)",
                   header->version, PCMK__IPC_VERSION);
         return false;
     }
+
     return true;
 }
 
@@ -101,7 +109,7 @@ int
 pcmk__ipc_msg_append(GByteArray **buffer, guint8 *data)
 {
     pcmk__ipc_header_t *full_header = NULL;
-    pcmk__ipc_header_t *header = (pcmk__ipc_header_t *) (void *) data;
+    pcmk__ipc_header_t *header = (void *) data;
     const guint8 *payload = (guint8 *) data + sizeof(pcmk__ipc_header_t);
     int rc = pcmk_rc_ok;
 
@@ -110,7 +118,7 @@ pcmk__ipc_msg_append(GByteArray **buffer, guint8 *data)
     }
 
     if (pcmk__is_set(header->flags, crm_ipc_multipart_end)) {
-        full_header = (pcmk__ipc_header_t *) (void *) (*buffer)->data;
+        full_header = (void *) (*buffer)->data;
 
         /* This is the end of a multipart IPC message.  Add the payload of the
          * received data (so, don't include the header) to the partial buffer.
@@ -147,7 +155,7 @@ pcmk__ipc_msg_append(GByteArray **buffer, guint8 *data)
                                 sizeof(pcmk__ipc_header_t) + header->size - 1);
 
         } else {
-            full_header = (pcmk__ipc_header_t *) (void *) (*buffer)->data;
+            full_header = (void *) (*buffer)->data;
 
             /* This is some intermediate part of a multipart message.  Add
              * the payload of the received data (so, don't include the header)
@@ -185,7 +193,7 @@ pcmk__ipc_msg_append(GByteArray **buffer, guint8 *data)
     /* The buffer's header should have a size that matches the full size of
      * the received message, not just the last chunk of it.
      */
-    full_header = (pcmk__ipc_header_t *) (void *) (*buffer)->data;
+    full_header = (void *) (*buffer)->data;
     full_header->size = (*buffer)->len - sizeof(pcmk__ipc_header_t);
 
     return rc;

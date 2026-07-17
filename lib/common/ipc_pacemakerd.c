@@ -9,14 +9,19 @@
 
 #include <crm_internal.h>
 
-#include <stdbool.h>
-#include <stdlib.h>
-#include <time.h>
+#include <errno.h>                      // EINVAL, ENOMSG, errno
+#include <stdbool.h>                    // bool, false, true
+#include <stdlib.h>                     // NULL, calloc, atoi, free
 
-#include <crm/crm.h>
+#include <libxml/tree.h>                // xmlNode
+
+#include <crm/common/ipc.h>             // pcmk_ipc_*
+#include <crm/common/ipc_pacemakerd.h>  // pcmk_pacemakerd_state
+#include <crm/common/options.h>         // PCMK_VALUE_REMOTE
+#include <crm/common/results.h>         // CRM_EX_*, pcmk_rc_*
 #include <crm/common/xml.h>
-#include <crm/common/ipc.h>
-#include <crm/common/ipc_pacemakerd.h>
+#include <crm/crm.h>                    // CRM_OP_PING, CRM_OP_QUIT
+
 #include "crmcommon_private.h"
 
 typedef struct {
@@ -37,28 +42,27 @@ static const char *pacemakerd_state_str[] = {
 enum pcmk_pacemakerd_state
 pcmk_pacemakerd_api_daemon_state_text2enum(const char *state)
 {
-    int i;
-
     if (state == NULL) {
         return pcmk_pacemakerd_state_invalid;
     }
-    for (i=pcmk_pacemakerd_state_init; i <= pcmk_pacemakerd_state_max;
-         i++) {
+
+    for (int i = pcmk_pacemakerd_state_init; i <= pcmk_pacemakerd_state_max; i++) {
         if (pcmk__str_eq(state, pacemakerd_state_str[i], pcmk__str_none)) {
             return i;
         }
     }
+
     return pcmk_pacemakerd_state_invalid;
 }
 
 const char *
-pcmk_pacemakerd_api_daemon_state_enum2text(
-    enum pcmk_pacemakerd_state state)
+pcmk_pacemakerd_api_daemon_state_enum2text(enum pcmk_pacemakerd_state state)
 {
     if ((state >= pcmk_pacemakerd_state_init) &&
         (state <= pcmk_pacemakerd_state_max)) {
         return pacemakerd_state_str[state];
     }
+
     return "invalid";
 }
 
@@ -157,6 +161,7 @@ post_connect(pcmk_ipc_api_t *api)
     if (api->api_data == NULL) {
         return EINVAL;
     }
+
     private = api->api_data;
     private->state = pcmk_pacemakerd_state_invalid;
 
@@ -171,6 +176,7 @@ post_disconnect(pcmk_ipc_api_t *api)
     if (api->api_data == NULL) {
         return;
     }
+
     private = api->api_data;
     private->state = pcmk_pacemakerd_state_invalid;
 }
@@ -209,6 +215,7 @@ dispatch(pcmk_ipc_api_t *api, xmlNode *reply)
                        "(bug?)",
                        pcmk_ipc_name(api, true), pcmk__s(status, ""));
         }
+
         return ack_status == CRM_EX_INDETERMINATE;
     }
 
@@ -262,17 +269,21 @@ dispatch(pcmk_ipc_api_t *api, xmlNode *reply)
 
         reply_data.data.ping.sys_from =
             pcmk__xe_get(msg_data, PCMK__XA_CRM_SUBSYSTEM);
-    } else if (pcmk__str_eq(value, CRM_OP_QUIT, pcmk__str_none)) {
+
+        goto done;
+    }
+
+    if (pcmk__str_eq(value, CRM_OP_QUIT, pcmk__str_none)) {
         const char *op_status = pcmk__xe_get(msg_data, PCMK__XA_OP_STATUS);
 
         reply_data.reply_type = pcmk_pacemakerd_reply_shutdown;
         reply_data.data.shutdown.status = atoi(op_status);
-    } else {
-        pcmk__info("Unrecognizable message from %s: unknown command '%s'",
-                   pcmk_ipc_name(api, true), pcmk__s(value, ""));
-        status = CRM_EX_PROTOCOL;
         goto done;
     }
+
+    pcmk__info("Unrecognizable message from %s: unknown command '%s'",
+               pcmk_ipc_name(api, true), pcmk__s(value, ""));
+    status = CRM_EX_PROTOCOL;
 
 done:
     pcmk__call_ipc_callback(api, pcmk_ipc_event_reply, status, &reply_data);
@@ -284,14 +295,16 @@ pcmk__pacemakerd_api_methods(void)
 {
     pcmk__ipc_methods_t *cmds = calloc(1, sizeof(pcmk__ipc_methods_t));
 
-    if (cmds != NULL) {
-        cmds->new_data = new_data;
-        cmds->free_data = free_data;
-        cmds->post_connect = post_connect;
-        cmds->reply_expected = reply_expected;
-        cmds->dispatch = dispatch;
-        cmds->post_disconnect = post_disconnect;
+    if (cmds == NULL) {
+        return NULL;
     }
+
+    cmds->new_data = new_data;
+    cmds->free_data = free_data;
+    cmds->post_connect = post_connect;
+    cmds->reply_expected = reply_expected;
+    cmds->dispatch = dispatch;
+    cmds->post_disconnect = post_disconnect;
     return cmds;
 }
 
@@ -300,8 +313,8 @@ do_pacemakerd_api_call(pcmk_ipc_api_t *api, const char *ipc_name, const char *ta
 {
     pacemakerd_api_private_t *private;
     char *sender_system = NULL;
-    xmlNode *cmd;
-    int rc;
+    xmlNode *cmd = NULL;
+    int rc = pcmk_rc_ok;
 
     if (api == NULL) {
         return EINVAL;
@@ -317,17 +330,17 @@ do_pacemakerd_api_call(pcmk_ipc_api_t *api, const char *ipc_name, const char *ta
                             CRM_SYSTEM_MCP, task, NULL);
     free(sender_system);
 
-    if (cmd) {
-        rc = pcmk__send_ipc_request(api, cmd);
-        if (rc != pcmk_rc_ok) {
-            pcmk__debug("Couldn't send request to %s: %s rc=%d",
-                        pcmk_ipc_name(api, true), pcmk_rc_str(rc), rc);
-        }
-        pcmk__xml_free(cmd);
-    } else {
-        rc = ENOMSG;
+    if (cmd == NULL) {
+        return ENOMSG;
     }
 
+    rc = pcmk__send_ipc_request(api, cmd);
+    if (rc != pcmk_rc_ok) {
+        pcmk__debug("Couldn't send request to %s: %s rc=%d",
+                    pcmk_ipc_name(api, true), pcmk_rc_str(rc), rc);
+    }
+
+    pcmk__xml_free(cmd);
     return rc;
 }
 

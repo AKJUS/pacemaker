@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2025 the Pacemaker project contributors
+ * Copyright 2020-2026 the Pacemaker project contributors
  *
  * The version control history for this file may have further details.
  *
@@ -9,18 +9,25 @@
 
 #include <crm_internal.h>
 
-#include <errno.h>
-#include <inttypes.h>                   // PRIu32
-#include <stdbool.h>
+#include <errno.h>                      // EINVAL, errno
+#include <stdbool.h>                    // bool, false, true
 #include <stdint.h>                     // uint32_t
-#include <stdio.h>
+#include <stdlib.h>                     // NULL, calloc, free
+#include <string.h>                     // strcmp
+#include <unistd.h>                     // getpid
 
-#include <libxml/tree.h>
+#include <glib.h>                       // g_list_*
+#include <libxml/tree.h>                // xmlNode
+#include <qb/qblog.h>                   // QB_XS
 
-#include <crm/crm.h>
+#include <crm/common/ipc.h>             // pcmk_ipc_*
+#include <crm/common/ipc_controld.h>    // pcmk_controld_api_*
+#include <crm/common/nvpair.h>          // crm_meta_name
+#include <crm/common/options.h>         // PCMK_META_TIMEOUT
+#include <crm/common/results.h>         // CRM_EX_*, pcmk_rc_*
 #include <crm/common/xml.h>
-#include <crm/common/ipc.h>
-#include <crm/common/ipc_controld.h>
+#include <crm/crm.h>                    // CRM_OP_*
+
 #include "crmcommon_private.h"
 
 struct controld_api_private_s {
@@ -104,30 +111,34 @@ post_connect(pcmk_ipc_api_t *api)
      */
     struct controld_api_private_s *private = api->api_data;
     const char *client_name = crm_system_name? crm_system_name : "client";
-    xmlNode *hello;
-    int rc;
+    xmlNode *hello = NULL;
+    int rc = pcmk_rc_ok;
 
     hello = create_hello_message(private->client_uuid, client_name,
                                  PCMK__CONTROLD_API_MAJOR,
                                  PCMK__CONTROLD_API_MINOR);
+
     rc = pcmk__send_ipc_request(api, hello);
     pcmk__xml_free(hello);
+
     if (rc != pcmk_rc_ok) {
         pcmk__info("Could not send IPC hello to %s: %s " QB_XS " rc=%s",
                    pcmk_ipc_name(api, true), pcmk_rc_str(rc), rc);
     } else {
         pcmk__debug("Sent IPC hello to %s", pcmk_ipc_name(api, true));
     }
+
     return rc;
 }
 
 static void
 set_node_info_data(pcmk_controld_api_reply_t *data, xmlNode *msg_data)
 {
-    data->reply_type = pcmk_controld_reply_info;
     if (msg_data == NULL) {
         return;
     }
+
+    data->reply_type = pcmk_controld_reply_info;
     data->data.node_info.have_quorum =
         pcmk__xe_attr_is_true(msg_data, PCMK_XA_HAVE_QUORUM);
     data->data.node_info.is_remote =
@@ -148,10 +159,11 @@ set_node_info_data(pcmk_controld_api_reply_t *data, xmlNode *msg_data)
 static void
 set_ping_data(pcmk_controld_api_reply_t *data, xmlNode *msg_data)
 {
-    data->reply_type = pcmk_controld_reply_ping;
     if (msg_data == NULL) {
         return;
     }
+
+    data->reply_type = pcmk_controld_reply_ping;
     data->data.ping.sys_from = pcmk__xe_get(msg_data, PCMK__XA_CRM_SUBSYSTEM);
     data->data.ping.fsa_state = pcmk__xe_get(msg_data, PCMK__XA_CRMD_STATE);
     data->data.ping.result = pcmk__xe_get(msg_data, PCMK_XA_RESULT);
@@ -160,7 +172,7 @@ set_ping_data(pcmk_controld_api_reply_t *data, xmlNode *msg_data)
 static void
 set_nodes_data(pcmk_controld_api_reply_t *data, xmlNode *msg_data)
 {
-    pcmk_controld_api_node_t *node_info;
+    pcmk_controld_api_node_t *node_info = NULL;
 
     data->reply_type = pcmk_controld_reply_nodes;
     for (xmlNode *node = pcmk__xe_first_child(msg_data, PCMK_XE_NODE, NULL,
@@ -170,10 +182,12 @@ set_nodes_data(pcmk_controld_api_reply_t *data, xmlNode *msg_data)
         long long id_ll = 0;
 
         node_info = pcmk__assert_alloc(1, sizeof(pcmk_controld_api_node_t));
+
         pcmk__xe_get_ll(node, PCMK_XA_ID, &id_ll);
         if (id_ll > 0) {
             node_info->id = id_ll;
         }
+
         node_info->uname = pcmk__xe_get(node, PCMK_XA_UNAME);
         node_info->state = pcmk__xe_get(node, PCMK__XA_IN_CCM);
         data->data.nodes = g_list_prepend(data->data.nodes, node_info);
@@ -299,13 +313,15 @@ pcmk__controld_api_methods(void)
 {
     pcmk__ipc_methods_t *cmds = calloc(1, sizeof(pcmk__ipc_methods_t));
 
-    if (cmds != NULL) {
-        cmds->new_data = new_data;
-        cmds->free_data = free_data;
-        cmds->post_connect = post_connect;
-        cmds->reply_expected = reply_expected;
-        cmds->dispatch = dispatch;
+    if (cmds == NULL) {
+        return NULL;
     }
+
+    cmds->new_data = new_data;
+    cmds->free_data = free_data;
+    cmds->post_connect = post_connect;
+    cmds->reply_expected = reply_expected;
+    cmds->dispatch = dispatch;
     return cmds;
 }
 
@@ -332,16 +348,20 @@ create_controller_request(const pcmk_ipc_api_t *api, const char *op,
     if (api == NULL) {
         return NULL;
     }
+
     private = api->api_data;
+
     if ((node == NULL) && !strcmp(op, CRM_OP_PING)) {
         sys_to = CRM_SYSTEM_DC;
     } else {
         sys_to = CRM_SYSTEM_CRMD;
     }
+
     sender_system = pcmk__assert_asprintf("%s_%s", private->client_uuid,
                                           pcmk__s(crm_system_name, "client"));
     request = pcmk__new_request(pcmk_ipc_controld, sender_system, node, sys_to,
                                 op, msg_data);
+
     free(sender_system);
     return request;
 }
@@ -354,24 +374,28 @@ send_controller_request(pcmk_ipc_api_t *api, const xmlNode *request,
     if (pcmk__xe_get(request, PCMK_XA_REFERENCE) == NULL) {
         return EINVAL;
     }
+
     if (reply_is_expected) {
         struct controld_api_private_s *private = api->api_data;
 
         private->replies_expected++;
     }
+
     return pcmk__send_ipc_request(api, request);
 }
 
 static xmlNode *
 create_reprobe_message_data(const char *target_node, const char *router_node)
 {
-    xmlNode *msg_data;
+    xmlNode *msg_data = NULL;
 
     msg_data = pcmk__xe_create(NULL, "data_for_" CRM_OP_REPROBE);
     pcmk__xe_set(msg_data, PCMK__META_ON_NODE, target_node);
+
     if ((router_node != NULL) && !pcmk__str_eq(router_node, target_node, pcmk__str_casei)) {
         pcmk__xe_set(msg_data, PCMK__XA_ROUTER_NODE, router_node);
     }
+
     return msg_data;
 }
 
@@ -389,23 +413,27 @@ int
 pcmk_controld_api_reprobe(pcmk_ipc_api_t *api, const char *target_node,
                           const char *router_node)
 {
-    xmlNode *request;
-    xmlNode *msg_data;
+    xmlNode *request = NULL;
+    xmlNode *msg_data = NULL;
     int rc = pcmk_rc_ok;
 
     if (api == NULL) {
         return EINVAL;
     }
+
     if (router_node == NULL) {
         router_node = target_node;
     }
+
     pcmk__debug("Sending %s IPC request to reprobe %s via %s",
                 pcmk_ipc_name(api, true), pcmk__s(target_node, "local node"),
                 pcmk__s(router_node, "local node"));
+
     msg_data = create_reprobe_message_data(target_node, router_node);
     request = create_controller_request(api, CRM_OP_REPROBE, router_node,
                                         msg_data);
     rc = send_controller_request(api, request, true);
+
     pcmk__xml_free(msg_data);
     pcmk__xml_free(request);
     return rc;
@@ -423,13 +451,14 @@ pcmk_controld_api_reprobe(pcmk_ipc_api_t *api, const char *target_node,
 int
 pcmk_controld_api_node_info(pcmk_ipc_api_t *api, uint32_t nodeid)
 {
-    xmlNode *request;
+    xmlNode *request = NULL;
     int rc = pcmk_rc_ok;
 
     request = create_controller_request(api, CRM_OP_NODE_INFO, NULL, NULL);
     if (request == NULL) {
         return EINVAL;
     }
+
     if (nodeid > 0) {
         pcmk__xe_set_ll(request, PCMK_XA_ID, nodeid);
     }
@@ -451,13 +480,14 @@ pcmk_controld_api_node_info(pcmk_ipc_api_t *api, uint32_t nodeid)
 int
 pcmk_controld_api_ping(pcmk_ipc_api_t *api, const char *node_name)
 {
-    xmlNode *request;
+    xmlNode *request = NULL;
     int rc = pcmk_rc_ok;
 
     request = create_controller_request(api, CRM_OP_PING, node_name, NULL);
     if (request == NULL) {
         return EINVAL;
     }
+
     rc = send_controller_request(api, request, true);
     pcmk__xml_free(request);
     return rc;
@@ -474,7 +504,7 @@ pcmk_controld_api_ping(pcmk_ipc_api_t *api, const char *node_name)
 int
 pcmk_controld_api_list_nodes(pcmk_ipc_api_t *api)
 {
-    xmlNode *request;
+    xmlNode *request = NULL;
     int rc = EINVAL;
 
     request = create_controller_request(api, PCMK__CONTROLD_CMD_NODES, NULL,
@@ -483,6 +513,7 @@ pcmk_controld_api_list_nodes(pcmk_ipc_api_t *api)
         rc = send_controller_request(api, request, true);
         pcmk__xml_free(request);
     }
+
     return rc;
 }
 
@@ -495,12 +526,16 @@ controller_resource_op(pcmk_ipc_api_t *api, const char *op,
                        const char *provider, const char *type)
 {
     int rc = pcmk_rc_ok;
-    char *key;
-    xmlNode *request, *msg_data, *xml_rsc, *params;
+    char *key = NULL;
+    xmlNode *request = NULL;
+    xmlNode *msg_data = NULL;
+    xmlNode *xml_rsc = NULL;
+    xmlNode *params = NULL;
 
     if (api == NULL) {
         return EINVAL;
     }
+
     if (router_node == NULL) {
         router_node = target_node;
     }
@@ -662,6 +697,7 @@ create_hello_message(const char *uuid, const char *client_name,
                               CRM_OP_HELLO, hello_node);
     free(sender_system);
     pcmk__xml_free(hello_node);
+
     if (hello == NULL) {
         pcmk__err("Could not create IPC hello message from %s (UUID %s): "
                   "Request creation failed",

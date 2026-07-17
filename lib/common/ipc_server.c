@@ -9,17 +9,33 @@
 
 #include <crm_internal.h>
 
-#include <stdbool.h>
-#include <stdio.h>
-#include <errno.h>
-#include <bzlib.h>
-#include <sys/stat.h>
-#include <sys/types.h>
+#include <errno.h>                  // EAGAIN, EINVAL, ENOMEM
+#include <inttypes.h>               // PRId32, uint16_t, uint32_t
+#include <limits.h>                 // UINT_MAX
+#include <stdbool.h>                // bool, false, true
+#include <stdlib.h>                 // NULL, free, calloc, size_t
+#include <string.h>                 // memcpy, strcmp, strndup
+#include <sys/stat.h>               // S_IRGRP, S_IRUSR, S_IWGRP
+#include <sys/types.h>              // gid_t, ssize_t, uid_t
+#include <sys/uio.h>                // iovec
 
-#include <crm/crm.h>
+#include <glib.h>                   // g_hash_table_*
+#include <gnutls/gnutls.h>          // gnutls_deinit
+#include <libxml/tree.h>            // xmlNode
+#include <qb/qbdefs.h>              // QB_MAX
+#include <qb/qbipc_common.h>        // qb_ipc_response_header
+#include <qb/qbipcs.h>              // qb_ipcs_*
+#include <qb/qblog.h>               // QB_XS
+
+#include <crm/common/ipc.h>         // crm_ipc_flags, pcmk_ipc_*
+#include <crm/common/logging.h>     // CRM_CHECK, CRM_LOG_ASSERT
+#include <crm/common/mainloop.h>    // mainloop_add_ipc_server
+#include <crm/common/results.h>     // crm_exit, pcmk_rc_*
 #include <crm/common/xml.h>
-#include <crm/common/ipc.h>
+#include <crm/crm.h>                // CRM_SYSTEM_CRMD
+
 #include "crmcommon_private.h"
+
 
 /* Evict clients whose event queue grows this large (by default) */
 #define PCMK_IPC_DEFAULT_QUEUE_MAX 500
@@ -52,37 +68,43 @@ pcmk__foreach_ipc_client(GHFunc func, void *user_data)
 {
     pcmk__assert(func != NULL);
 
-    if (client_connections != NULL) {
-        g_hash_table_foreach(client_connections, func, user_data);
+    if (client_connections == NULL) {
+        return;
     }
+
+    g_hash_table_foreach(client_connections, func, user_data);
 }
 
 pcmk__client_t *
 pcmk__find_client(const qb_ipcs_connection_t *c)
 {
-    if (client_connections) {
-        return g_hash_table_lookup(client_connections, c);
+    if (client_connections == NULL) {
+        pcmk__trace("No client found for %p", c);
+        return NULL;
     }
 
-    pcmk__trace("No client found for %p", c);
-    return NULL;
+    return g_hash_table_lookup(client_connections, c);
 }
 
 pcmk__client_t *
 pcmk__find_client_by_id(const char *id)
 {
-    if ((client_connections != NULL) && (id != NULL)) {
-        void *key = NULL;
-        pcmk__client_t *client = NULL;
-        GHashTableIter iter;
+    void *key = NULL;
+    pcmk__client_t *client = NULL;
+    GHashTableIter iter;
 
-        g_hash_table_iter_init(&iter, client_connections);
-        while (g_hash_table_iter_next(&iter, &key, (void **) &client)) {
-            if (strcmp(client->id, id) == 0) {
-                return client;
-            }
+    if ((client_connections == NULL) || (id == NULL)) {
+        goto not_found;
+    }
+
+    g_hash_table_iter_init(&iter, client_connections);
+    while (g_hash_table_iter_next(&iter, &key, (void **) &client)) {
+        if (strcmp(client->id, id) == 0) {
+            return client;
         }
     }
+
+not_found:
     pcmk__trace("No client found with id='%s'", pcmk__s(id, ""));
     return NULL;
 }
@@ -101,30 +123,35 @@ pcmk__client_name(const pcmk__client_t *c)
 {
     if (c == NULL) {
         return "(unspecified)";
-
-    } else if (c->name != NULL) {
-        return c->name;
-
-    } else if (c->id != NULL) {
-        return c->id;
-
-    } else {
-        return "(unidentified)";
     }
+
+    if (c->name != NULL) {
+        return c->name;
+    }
+
+    if (c->id != NULL) {
+        return c->id;
+    }
+
+    return "(unidentified)";
 }
 
 void
 pcmk__client_cleanup(void)
 {
-    if (client_connections != NULL) {
-        int active = g_hash_table_size(client_connections);
+    int active = 0;
 
-        if (active > 0) {
-            pcmk__warn("Exiting with %d active IPC client%s", active,
-                       pcmk__plural_s(active));
-        }
-        g_clear_pointer(&client_connections, g_hash_table_destroy);
+    if (client_connections == NULL) {
+        return;
     }
+
+    active = g_hash_table_size(client_connections);
+
+    if (active > 0) {
+        pcmk__warn("Exiting with %d active IPC client%s", active,
+                   pcmk__plural_s(active));
+    }
+    g_clear_pointer(&client_connections, g_hash_table_destroy);
 }
 
 void
@@ -166,7 +193,7 @@ client_from_connection(qb_ipcs_connection_t *c, void *key, uid_t uid_client)
 {
     pcmk__client_t *client = pcmk__assert_alloc(1, sizeof(pcmk__client_t));
 
-    if (c) {
+    if (c != NULL) {
         client->user = pcmk__uid2username(uid_client);
         if (client->user == NULL) {
             client->user = pcmk__str_copy("#unprivileged");
@@ -174,22 +201,27 @@ client_from_connection(qb_ipcs_connection_t *c, void *key, uid_t uid_client)
                       "unprivileged",
                       uid_client);
         }
+
         client->ipcs = c;
         pcmk__set_client_flags(client, pcmk__client_ipc);
         client->pid = pcmk__client_pid(c);
+
         if (key == NULL) {
             key = c;
         }
     }
 
     client->id = pcmk__generate_uuid();
+
     if (key == NULL) {
         key = client->id;
     }
+
     if (client_connections == NULL) {
         pcmk__trace("Creating IPC client table");
         client_connections = g_hash_table_new(g_direct_hash, g_direct_equal);
     }
+
     g_hash_table_insert(client_connections, key, client);
     return client;
 }
@@ -250,7 +282,7 @@ pcmk__new_client(qb_ipcs_connection_t *c, uid_t uid_client, gid_t gid_client)
 static struct iovec *
 pcmk__new_ipc_event(void)
 {
-    return (struct iovec *) pcmk__assert_alloc(2, sizeof(struct iovec));
+    return pcmk__assert_alloc(2, sizeof(struct iovec));
 }
 
 /*!
@@ -261,17 +293,19 @@ pcmk__new_ipc_event(void)
 void
 pcmk_free_ipc_event(struct iovec *event)
 {
-    if (event != NULL) {
-        free(event[0].iov_base);
-        free(event[1].iov_base);
-        free(event);
+    if (event == NULL) {
+        return;
     }
+
+    free(event[0].iov_base);
+    free(event[1].iov_base);
+    free(event);
 }
 
 static void
 free_event(void *data)
 {
-    pcmk_free_ipc_event((struct iovec *) data);
+    pcmk_free_ipc_event(data);
 }
 
 static void
@@ -290,8 +324,8 @@ pcmk__free_client(pcmk__client_t *c)
         return;
     }
 
-    if (client_connections) {
-        if (c->ipcs) {
+    if (client_connections != NULL) {
+        if (c->ipcs != NULL) {
             pcmk__trace("Destroying %p/%p (%u remaining)", c, c->ipcs,
                         (g_hash_table_size(client_connections) - 1));
             g_hash_table_remove(client_connections, c->ipcs);
@@ -303,11 +337,11 @@ pcmk__free_client(pcmk__client_t *c)
         }
     }
 
-    if (c->event_timer) {
+    if (c->event_timer != 0) {
         g_source_remove(c->event_timer);
     }
 
-    if (c->event_queue) {
+    if (c->event_queue != NULL) {
         pcmk__debug("Destroying %d events", g_queue_get_length(c->event_queue));
         g_queue_free_full(c->event_queue, free_event);
     }
@@ -321,19 +355,22 @@ pcmk__free_client(pcmk__client_t *c)
         c->buffer = NULL;
     }
 
-    if (c->remote) {
-        if (c->remote->auth_timeout) {
+    if (c->remote != NULL) {
+        if (c->remote->auth_timeout != 0) {
             g_source_remove(c->remote->auth_timeout);
         }
+
         if (c->remote->tls_session != NULL) {
             /* @TODO Reduce duplication at callers. Put here everything
              * necessary to tear down and free tls_session.
              */
             gnutls_deinit(c->remote->tls_session);
         }
+
         free(c->remote->buffer);
         free(c->remote);
     }
+
     free(c);
 }
 
@@ -357,6 +394,7 @@ pcmk__set_client_queue_max(pcmk__client_t *client, const char *qmax)
 
     if (pcmk__is_set(client->flags, pcmk__client_privileged)) {
         rc = pcmk__scan_ll(qmax, &qmax_ll, 0LL);
+
         if (rc == pcmk_rc_ok) {
             if ((qmax_ll <= 0LL) || (qmax_ll > UINT_MAX)) {
                 rc = ERANGE;
@@ -364,6 +402,7 @@ pcmk__set_client_queue_max(pcmk__client_t *client, const char *qmax)
                 client->queue_max = (unsigned int) qmax_ll;
             }
         }
+
     } else {
         rc = EACCES;
     }
@@ -411,11 +450,11 @@ pcmk__client_data2xml(pcmk__client_t *c, uint32_t *id, uint32_t *flags)
         return NULL;
     }
 
-    if (id) {
+    if (id != NULL) {
         *id = header->qb.id;
     }
 
-    if (flags) {
+    if (flags != NULL) {
         *flags = header->flags;
     }
 
@@ -726,10 +765,10 @@ id_for_server_event(pcmk__ipc_header_t *header)
     if (pcmk__is_set(header->flags, crm_ipc_multipart)
         && (header->part_id != 0)) {
         return id;
-    } else {
-        id++;
-        return id;
     }
+
+    id++;
+    return id;
 }
 
 int
@@ -911,24 +950,25 @@ pcmk__ipc_send_xml(pcmk__client_t *c, uint32_t request, const xmlNode *message,
 
                     index++;
                     break;
-
-                } else {
-                    /* EAGAIN is an error for IPC messages.  We don't have a
-                     * send queue for these, so we need to try again.  If there
-                     * was some other error, we need to break out of this loop
-                     * and report it.
-                     *
-                     * FIXME: Retry limit for EAGAIN?
-                     */
-                    if (rc == pcmk_rc_ok) {
-                        index++;
-                        break;
-                    } else if (rc == EAGAIN) {
-                        break;
-                    } else {
-                        goto done;
-                    }
                 }
+
+                /* EAGAIN is an error for IPC messages.  We don't have a
+                 * send queue for these, so we need to try again.  If there
+                 * was some other error, we need to break out of this loop
+                 * and report it.
+                 *
+                 * FIXME: Retry limit for EAGAIN?
+                 */
+                if (rc == pcmk_rc_ok) {
+                    index++;
+                    break;
+                }
+
+                if (rc == EAGAIN) {
+                    break;
+                }
+
+                goto done;
 
             default:
                 /* An error occurred during preparation */
@@ -1008,10 +1048,12 @@ pcmk__ipc_send_ack_as(const char *function, int line, pcmk__client_t *c,
     pcmk__trace("Ack'ing IPC message from client %s as <" PCMK__XE_ACK
                 " status=%d>",
                 pcmk__client_name(c), status);
+
     pcmk__log_xml_trace(ack, "sent-ack");
     c->request_id = 0;
     rc = pcmk__ipc_send_xml(c, request, ack, flags);
     pcmk__xml_free(ack);
+
     return rc;
 }
 
@@ -1182,6 +1224,7 @@ pcmk__serve_pacemakerd_ipc(qb_ipcs_service_t **ipcs,
                    pcmk__server_log_name(pcmk_ipc_pacemakerd));
         pcmk__crit("Verify pacemaker and pacemaker_remote are not both "
                    "enabled");
+
         /* sub-daemons are observed by pacemakerd. Thus we exit CRM_EX_FATAL
          * if we want to prevent pacemakerd from restarting them.
          * With pacemakerd we leave the exit-code shown to e.g. systemd
