@@ -54,6 +54,7 @@
 #define SECONDS_IN_HOUR     (SECONDS_IN_MINUTE * MINUTES_IN_HOUR)
 #define HOURS_IN_DAY        24
 #define SECONDS_IN_DAY      (SECONDS_IN_HOUR * HOURS_IN_DAY)
+#define DAYS_IN_WEEK        7
 
 #define BEGIN_VALID_RANGE_S "0001-01-01T00:00:00"
 #define END_VALID_RANGE_S   "9999-12-31T23:59:59"
@@ -181,7 +182,7 @@ year_days(int year)
  *  YY = (Y-1) % 100
  *  C = (Y-1) - YY
  *  G = YY + YY/4
- *  Jan1Weekday = 1 + (((((C / 100) % 4) x 5) + G) % 7)
+ *  Jan1Weekday = 1 + (((((C / 100) % 4) x 5) + G) % DAYS_IN_WEEK)
  */
 static int
 jan1_day_of_week(int year)
@@ -189,7 +190,7 @@ jan1_day_of_week(int year)
     int YY = (year - 1) % 100;
     int C = (year - 1) - YY;
     int G = YY + YY / 4;
-    int jan1 = 1 + (((((C / 100) % 4) * 5) + G) % 7);
+    int jan1 = 1 + (((((C / 100) % 4) * 5) + G) % DAYS_IN_WEEK);
 
     pcmk__trace("YY=%d, C=%d, G=%d", YY, C, G);
     pcmk__trace("January 1 %.4d: %d", year, jan1);
@@ -612,7 +613,7 @@ parse_date(const char *date_str)
                         year, jan1, week, day, date_str);
 
             dt->years = year;
-            pcmk__time_add_days(dt, (week - 1) * 7);
+            pcmk__time_add_days(dt, (week - 1) * DAYS_IN_WEEK);
 
             if (jan1 <= 4) {
                 pcmk__time_add_days(dt, 1 - jan1);
@@ -967,7 +968,7 @@ pcmk__time_get_ywd(const crm_time_t *dt, uint32_t *y, uint32_t *w, uint32_t *d)
 
 /* 6. Find the Weekday for Y M D */
     h = dt->days + jan1 - 1;
-    *d = 1 + ((h - 1) % 7);
+    *d = 1 + ((h - 1) % DAYS_IN_WEEK);
 
 /* 7. Find if Y M D falls in YearNumber Y-1, WeekNumber 52 or 53 */
     if (dt->days <= (8 - jan1) && jan1 > 4) {
@@ -994,9 +995,9 @@ pcmk__time_get_ywd(const crm_time_t *dt, uint32_t *y, uint32_t *w, uint32_t *d)
 
 /* 9. Find if Y M D falls in YearNumber Y, WeekNumber 1 through 53 */
     if (year_num == dt->years) {
-        int j = dt->days + (7 - *d) + (jan1 - 1);
+        int j = dt->days + (DAYS_IN_WEEK - *d) + (jan1 - 1);
 
-        *w = j / 7;
+        *w = j / DAYS_IN_WEEK;
         if (jan1 > 4) {
             *w -= 1;
         }
@@ -1950,7 +1951,13 @@ crm_time_add_months(crm_time_t *dt, int value)
 void
 crm_time_add_weeks(crm_time_t *dt, int value)
 {
-    pcmk__time_add_days(dt, value * 7);
+    for (; value > 0; value--) {
+        pcmk__time_add_days(dt, DAYS_IN_WEEK);
+    }
+
+    for (; value < 0; value++) {
+        pcmk__time_add_days(dt, -DAYS_IN_WEEK);
+    }
 }
 
 void
