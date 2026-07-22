@@ -417,7 +417,7 @@ do_started(long long action, enum crmd_fsa_cause cause,
            enum crmd_fsa_state cur_state, enum crmd_fsa_input current_input,
            fsa_data_t *msg_data)
 {
-    static struct qb_ipcs_service_handlers crmd_callbacks = {
+    static struct qb_ipcs_service_handlers callbacks = {
         .connection_accept = accept_controller_client,
         .connection_created = NULL,
         .msg_process = dispatch_controller_ipc,
@@ -468,7 +468,7 @@ do_started(long long action, enum crmd_fsa_cause cause,
     }
 
     pcmk__debug("Initializing IPC server");
-    ipcs = pcmk__serve_controld_ipc(&crmd_callbacks);
+    pcmk__serve_controld_ipc(&ipcs, &callbacks);
 
     if (ipcs == NULL) {
         pcmk__err("Failed to create IPC server: shutting down and inhibiting "

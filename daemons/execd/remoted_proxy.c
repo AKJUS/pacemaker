@@ -30,10 +30,9 @@
 
 static qb_ipcs_service_t *cib_ro = NULL;
 static qb_ipcs_service_t *cib_rw = NULL;
-static qb_ipcs_service_t *cib_shm = NULL;
 
 static qb_ipcs_service_t *attrd_ipcs = NULL;
-static qb_ipcs_service_t *crmd_ipcs = NULL;
+static qb_ipcs_service_t *controld_ipcs = NULL;
 static qb_ipcs_service_t *fencer_ipcs = NULL;
 static qb_ipcs_service_t *pacemakerd_ipcs = NULL;
 
@@ -520,19 +519,18 @@ ipc_proxy_init(void)
 {
     ipc_clients = pcmk__strkey_table(NULL, NULL);
 
-    pcmk__serve_based_ipc(&cib_ro, &cib_rw, &cib_shm, &cib_proxy_callbacks_ro,
+    pcmk__serve_based_ipc(&cib_ro, &cib_rw, &cib_proxy_callbacks_ro,
                           &cib_proxy_callbacks_rw);
     pcmk__serve_attrd_ipc(&attrd_ipcs, &attrd_proxy_callbacks);
-    pcmk__serve_fenced_ipc(&fencer_ipcs, &fencer_proxy_callbacks);
-    pcmk__serve_pacemakerd_ipc(&pacemakerd_ipcs, &pacemakerd_proxy_callbacks);
-    crmd_ipcs = pcmk__serve_controld_ipc(&crmd_proxy_callbacks);
-    if (crmd_ipcs == NULL) {
-        pcmk__err("Failed to create controller: exiting and inhibiting "
-                  "respawn");
-        pcmk__warn("Verify pacemaker and pacemaker_remote are not both "
-                   "enabled");
+
+    pcmk__serve_controld_ipc(&controld_ipcs, &crmd_proxy_callbacks);
+    if (controld_ipcs == NULL) {
+        // Error already logged
         crm_exit(CRM_EX_FATAL);
     }
+
+    pcmk__serve_fenced_ipc(&fencer_ipcs, &fencer_proxy_callbacks);
+    pcmk__serve_pacemakerd_ipc(&pacemakerd_ipcs, &pacemakerd_proxy_callbacks);
 }
 
 void
@@ -541,14 +539,10 @@ ipc_proxy_cleanup(void)
     g_clear_pointer(&ipc_providers, g_list_free);
     g_clear_pointer(&ipc_clients, g_hash_table_destroy);
 
-    pcmk__stop_based_ipc(cib_ro, cib_rw, cib_shm);
-
     g_clear_pointer(&attrd_ipcs, qb_ipcs_destroy);
+    g_clear_pointer(&cib_ro, qb_ipcs_destroy);
+    g_clear_pointer(&cib_rw, qb_ipcs_destroy);
+    g_clear_pointer(&controld_ipcs, qb_ipcs_destroy);
     g_clear_pointer(&fencer_ipcs, qb_ipcs_destroy);
     g_clear_pointer(&pacemakerd_ipcs, qb_ipcs_destroy);
-    g_clear_pointer(&crmd_ipcs, qb_ipcs_destroy);
-
-    cib_ro = NULL;
-    cib_rw = NULL;
-    cib_shm = NULL;
 }

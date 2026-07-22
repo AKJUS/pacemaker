@@ -29,7 +29,6 @@ struct trigger_s {
     gboolean trigger;
     void *user_data;
     unsigned int id;
-
 };
 
 struct mainloop_timer_s {
@@ -40,6 +39,22 @@ struct mainloop_timer_s {
         GSourceFunc cb;
         void *userdata;
 };
+
+static GList *child_list = NULL;
+static qb_array_t *gio_map = NULL;
+
+static void
+child_free(mainloop_child_t *child)
+{
+    if (child->timerid != 0) {
+        pcmk__trace("Removing timer %d", child->timerid);
+        g_source_remove(child->timerid);
+        child->timerid = 0;
+    }
+
+    free(child->desc);
+    free(child);
+}
 
 static gboolean
 crm_trigger_prepare(GSource *source, int *timeout)
@@ -335,6 +350,8 @@ mainloop_destroy_signal_entry(int sig)
  * \note The true signal handler merely sets a mainloop trigger to call this
  *       dispatch function via the mainloop. Therefore, the dispatch function
  *       does not need to be async-safe.
+ * \note The added signal handler gets freed by \c mainloop_cleanup() if it is
+ *       not freed manually using \c mainloop_destroy_signal().
  */
 gboolean
 mainloop_add_signal(int sig, void (*dispatch) (int sig))
@@ -398,11 +415,18 @@ mainloop_destroy_signal(int sig)
     return TRUE;
 }
 
-static qb_array_t *gio_map = NULL;
-
+/*!
+ * \internal
+ * \brief Free data structures used for the mainloop
+ *
+ * \todo This is incomplete. Free other data structures created in this file.
+ */
 void
 mainloop_cleanup(void)
 {
+    g_list_free_full(child_list, (GDestroyNotify) child_free);
+    child_list = NULL;
+
     g_clear_pointer(&gio_map, qb_array_free);
 
     for (int sig = 0; sig < NSIG; ++sig) {
@@ -592,31 +616,6 @@ struct qb_ipcs_poll_handlers gio_poll_funcs = {
     .dispatch_del = gio_poll_dispatch_del,
 };
 
-static enum qb_ipc_type
-pick_ipc_type(enum qb_ipc_type requested)
-{
-    const char *env = pcmk__env_option(PCMK__ENV_IPC_TYPE);
-
-    if (env && strcmp("shared-mem", env) == 0) {
-        return QB_IPC_SHM;
-    } else if (env && strcmp("socket", env) == 0) {
-        return QB_IPC_SOCKET;
-    } else if (env && strcmp("posix", env) == 0) {
-        return QB_IPC_POSIX_MQ;
-    } else if (env && strcmp("sysv", env) == 0) {
-        return QB_IPC_SYSV_MQ;
-    } else if (requested == QB_IPC_NATIVE) {
-        /* We prefer shared memory because the server never blocks on
-         * send.  If part of a message fits into the socket, libqb
-         * needs to block until the remainder can be sent also.
-         * Otherwise the client will wait forever for the remaining
-         * bytes.
-         */
-        return QB_IPC_SHM;
-    }
-    return requested;
-}
-
 qb_ipcs_service_t *
 mainloop_add_ipc_server(const char *name, enum qb_ipc_type type,
                         struct qb_ipcs_service_handlers *callbacks)
@@ -636,7 +635,7 @@ mainloop_add_ipc_server_with_prio(const char *name, enum qb_ipc_type type,
         gio_map = qb_array_create_2(64, sizeof(struct gio_to_qb_poll), 1);
     }
 
-    server = qb_ipcs_create(name, 0, pick_ipc_type(type), callbacks);
+    server = qb_ipcs_create(name, 0, QB_IPC_SHM, callbacks);
 
     if (server == NULL) {
         pcmk__err("Could not create %s IPC server: %s (%d)", name,
@@ -669,20 +668,6 @@ mainloop_del_ipc_server(qb_ipcs_service_t * server)
         qb_ipcs_destroy(server);
     }
 }
-
-struct mainloop_io_s {
-    char *name;
-    void *userdata;
-
-    int fd;
-    unsigned int source;
-    crm_ipc_t *ipc;
-    GIOChannel *channel;
-
-    int (*dispatch_fn_ipc)(const char *buffer, ssize_t length, void *userdata);
-    int (*dispatch_fn_io)(void *userdata);
-    void (*destroy_fn)(void *userdata);
-};
 
 /*!
  * \internal
@@ -1006,8 +991,6 @@ mainloop_del_fd(mainloop_io_t *client)
     g_source_remove(client->source);
 }
 
-static GList *child_list = NULL;
-
 pid_t
 mainloop_child_pid(mainloop_child_t * child)
 {
@@ -1038,48 +1021,41 @@ mainloop_clear_child_userdata(mainloop_child_t * child)
     child->privatedata = NULL;
 }
 
-/* good function name */
-static void
-child_free(mainloop_child_t *child)
-{
-    if (child->timerid != 0) {
-        pcmk__trace("Removing timer %d", child->timerid);
-        g_source_remove(child->timerid);
-        child->timerid = 0;
-    }
-    free(child->desc);
-    free(child);
-}
-
-/* terrible function name */
 static int
-child_kill_helper(mainloop_child_t *child)
+child_kill_helper(const mainloop_child_t *child)
 {
-    int rc;
-    if (child->flags & mainloop_leave_pid_group) {
+    int rc = 0;
+
+    if (pcmk__is_set(child->flags, mainloop_leave_pid_group)) {
         pcmk__debug("Killing PID %lld only. Leaving its process group intact.",
                     (long long) child->pid);
         rc = kill(child->pid, SIGKILL);
+
     } else {
         pcmk__debug("Killing PID %lld's entire process group",
                     (long long) child->pid);
         rc = kill(-child->pid, SIGKILL);
     }
 
-    if (rc < 0) {
-        if (errno != ESRCH) {
-            pcmk__err("kill(%d, KILL) failed: %s", child->pid, strerror(errno));
-        }
-        return -errno;
+    if (rc == 0) {
+        return pcmk_rc_ok;
     }
-    return 0;
+
+    rc = errno;
+    if (rc == ESRCH) {
+        return rc;
+    }
+
+    pcmk__err("kill(%lld, KILL) failed: %s", (long long) child->pid,
+              strerror(rc));
+    return rc;
 }
 
 static gboolean
 child_timeout_callback(void *p)
 {
     mainloop_child_t *child = p;
-    int rc = 0;
+    int rc = pcmk_rc_ok;
 
     child->timerid = 0;
     if (child->timeout) {
@@ -1089,7 +1065,7 @@ child_timeout_callback(void *p)
     }
 
     rc = child_kill_helper(child);
-    if (rc == -ESRCH) {
+    if (rc == ESRCH) {
         /* Nothing left to do. pid doesn't exist */
         return FALSE;
     }
@@ -1110,15 +1086,16 @@ child_waitpid(mainloop_child_t *child, int flags)
     int signo = 0;
     int status = 0;
     int exitcode = 0;
-    bool callback_needed = true;
 
     rc = waitpid(child->pid, &status, flags);
+
     if (rc == 0) { // WNOHANG in flags, and child status is not available
         pcmk__trace("Child process %lld (%s) still active",
                     (long long) child->pid, child->desc);
-        callback_needed = false;
+        return false;
+    }
 
-    } else if (rc != child->pid) {
+    if (rc != child->pid) {
         /* According to POSIX, possible conditions:
          * - child->pid was non-positive (process group or any child),
          *   and rc is specific child
@@ -1130,8 +1107,8 @@ child_waitpid(mainloop_child_t *child, int flags)
          */
         signo = SIGCHLD;
         exitcode = 1;
-        pcmk__notice("Wait for child process %d (%s) interrupted: %s",
-                     child->pid, child->desc, pcmk_rc_str(errno));
+        pcmk__notice("Wait for child process %lld (%s) interrupted: %s",
+                     (long long) child->pid, child->desc, strerror(errno));
 
     } else if (WIFEXITED(status)) {
         exitcode = WEXITSTATUS(status);
@@ -1147,19 +1124,21 @@ child_waitpid(mainloop_child_t *child, int flags)
 #ifdef WCOREDUMP // AIX, SunOS, maybe others
     } else if (WCOREDUMP(status)) {
         core = 1;
-        pcmk__err("Child process %d (%s) dumped core", child->pid, child->desc);
+        pcmk__err("Child process %lld (%s) dumped core", (long long) child->pid,
+                  child->desc);
 #endif
 
     } else { // flags must contain WUNTRACED and/or WCONTINUED to reach this
         pcmk__trace("Child process %lld (%s) stopped or continued",
                     (long long) child->pid, child->desc);
-        callback_needed = false;
+        return false;
     }
 
-    if (callback_needed && child->exit_fn) {
+    if (child->exit_fn != NULL) {
         child->exit_fn(child, core, signo, exitcode);
     }
-    return callback_needed;
+
+    return true;
 }
 
 static void
@@ -1200,7 +1179,8 @@ mainloop_child_kill(pid_t pid)
     mainloop_child_t *match = NULL;
     /* It is impossible to block SIGKILL, this allows us to
      * call waitpid without WNOHANG flag.*/
-    int waitflags = 0, rc = 0;
+    int waitflags = 0;
+    int rc = pcmk_rc_ok;
 
     for (iter = child_list; iter != NULL && match == NULL; iter = iter->next) {
         child = iter->data;
@@ -1214,7 +1194,7 @@ mainloop_child_kill(pid_t pid)
     }
 
     rc = child_kill_helper(match);
-    if(rc == -ESRCH) {
+    if (rc == ESRCH) {
         /* It's gone, but hasn't shown up in waitpid() yet. Wait until we get
          * SIGCHLD and let handler clean it up as normal (so we get the correct
          * return code/status). The blocking alternative would be to call
@@ -1223,10 +1203,11 @@ mainloop_child_kill(pid_t pid)
         pcmk__trace("Waiting for signal that child process %lld completed",
                     (long long) match->pid);
         return TRUE;
+    }
 
-    } else if(rc != 0) {
-        /* If KILL for some other reason set the WNOHANG flag since we
-         * can't be certain what happened.
+    if (rc != pcmk_rc_ok) {
+        /* If kill() failed for some other reason, set the WNOHANG flag, since
+         * we can't be certain what happened.
          */
         waitflags = WNOHANG;
     }

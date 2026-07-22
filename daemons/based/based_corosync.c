@@ -15,7 +15,7 @@
 #include <stdlib.h>                 // free
 
 #include <corosync/cpg.h>           // cpg_*
-#include <glib.h>                   // gpointer
+#include <glib.h>                   // g_clear_pointer
 #include <libxml/tree.h>            // xmlNode
 
 #include <crm_config.h>             // SUPPORT_COROSYNC

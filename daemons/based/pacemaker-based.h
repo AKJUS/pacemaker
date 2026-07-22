@@ -12,7 +12,9 @@
 
 #include <stdbool.h>
 
-#include <glib.h>                   // gchar, GMainLoop
+#include <glib.h>                   // gchar
+
+#include <crm/common/results.h>     // crm_exit_t
 
 #include "based_callbacks.h"
 #include "based_corosync.h"
@@ -25,8 +27,6 @@
 #include "based_transaction.h"
 
 extern xmlNode *based_cib;
-
-extern GMainLoop *mainloop;
 extern gchar *cib_root;
 extern int cib_status;
 
@@ -35,5 +35,7 @@ void based_set_local_node_dc(bool value);
 
 bool based_shutting_down(void);
 bool based_stand_alone(void);
+
+void based_terminate(crm_exit_t exit_status);
 
 #endif // PACEMAKER_BASED__H

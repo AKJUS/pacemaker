@@ -28,7 +28,7 @@
 #include <crm/common/ipc.h>         // crm_ipc_*, pcmk_ipc_*
 #include <crm/common/logging.h>     // CRM_LOG_ASSERT, CRM_CHECK
 #include <crm/common/mainloop.h>    // mainloop_*
-#include <crm/common/results.h>     // CRM_EX_OK, crm_exit_t, pcmk_rc_*
+#include <crm/common/results.h>     // pcmk_rc_*
 #include <crm/common/xml.h>         // PCMK_XA_*, PCMK_XE_*
 #include <crm/crm.h>                // CRM_OP_*
 
@@ -38,6 +38,85 @@ static mainloop_timer_t *digest_timer = NULL;
 static long long ping_seq = 0;
 static char *ping_digest = NULL;
 static bool ping_modified_since = false;
+
+/*!
+ * \internal
+ * \brief Request CIB digests from all peer nodes
+ *
+ * This is used as a callback that runs 5 seconds after we modify the CIB on the
+ * DC. It sends a ping request to all cluster nodes. They will respond by
+ * sending their current digests and version info, which we will validate in
+ * process_ping_reply(). If their digest doesn't match, we'll sync our own CIB
+ * to them. This helps ensure consistency across the cluster after a CIB update.
+ *
+ * \param[in] data  Ignored
+ *
+ * \return \c G_SOURCE_REMOVE (to destroy the timeout)
+ *
+ * \note It's not clear why we wait 5 seconds rather than sending the ping
+ *       request immediately after a performing a modifying op. Perhaps it's to
+ *       avoid overwhelming other nodes with ping requests when there are a lot
+ *       of modifying requests in a short period. The timer restarts after
+ *       every successful modifying op, so we send ping requests **at most**
+ *       every 5 seconds. Or perhaps it's a remnant of legacy mode (pre-1.1.12).
+ *       In any case, the other nodes shouldn't need time to process the
+ *       modifying op before responding to the ping request. The ping request is
+ *       sent after the op is sent, so it should also be received after the op
+ *       is received.
+ */
+static gboolean
+digest_timer_cb(void *data)
+{
+    xmlNode *ping = NULL;
+
+    if (!based_get_local_node_dc()) {
+        // Only the DC sends a ping
+        return G_SOURCE_REMOVE;
+    }
+
+    if (++ping_seq < 0) {
+        ping_seq = 0;
+    }
+
+    g_clear_pointer(&ping_digest, free);
+    ping_modified_since = false;
+
+    ping = pcmk__xe_create(NULL, PCMK__XE_PING);
+    pcmk__xe_set(ping, PCMK__XA_T, PCMK__VALUE_CIB);
+    pcmk__xe_set(ping, PCMK__XA_CIB_OP, CRM_OP_PING);
+    pcmk__xe_set_ll(ping, PCMK__XA_CIB_PING_ID, ping_seq);
+    pcmk__xe_set(ping, PCMK_XA_CRM_FEATURE_SET, CRM_FEATURE_SET);
+
+    pcmk__trace("Requesting peer digests (%lld)", ping_seq);
+    pcmk__cluster_send_message(NULL, pcmk_ipc_based, ping);
+
+    pcmk__xml_free(ping);
+    return G_SOURCE_REMOVE;
+}
+
+/*!
+ * \internal
+ * \brief Initialize data structures used for CIB manager callbacks
+ */
+void
+based_callbacks_init(void)
+{
+    if (digest_timer == NULL) {
+        digest_timer = mainloop_timer_add("based_digest_timer", 5000, false,
+                                          digest_timer_cb, NULL);
+    }
+}
+
+/*!
+ * \internal
+ * \brief Free data structures used for CIB manager callbacks
+ */
+void
+based_callbacks_cleanup(void)
+{
+    g_clear_pointer(&digest_timer, mainloop_timer_del);
+    g_clear_pointer(&ping_digest, free);
+}
 
 /*!
  * \internal
@@ -146,61 +225,6 @@ do_local_notify(const xmlNode *xml, const char *client_id, bool sync_reply,
                    client_type, client_name, client_desc, sync_s, call_id,
                    pcmk_rc_str(rc));
     }
-}
-
-/*!
- * \internal
- * \brief Request CIB digests from all peer nodes
- *
- * This is used as a callback that runs 5 seconds after we modify the CIB on the
- * DC. It sends a ping request to all cluster nodes. They will respond by
- * sending their current digests and version info, which we will validate in
- * process_ping_reply(). If their digest doesn't match, we'll sync our own CIB
- * to them. This helps ensure consistency across the cluster after a CIB update.
- *
- * \param[in] data  Ignored
- *
- * \return \c G_SOURCE_REMOVE (to destroy the timeout)
- *
- * \note It's not clear why we wait 5 seconds rather than sending the ping
- *       request immediately after a performing a modifying op. Perhaps it's to
- *       avoid overwhelming other nodes with ping requests when there are a lot
- *       of modifying requests in a short period. The timer restarts after
- *       every successful modifying op, so we send ping requests **at most**
- *       every 5 seconds. Or perhaps it's a remnant of legacy mode (pre-1.1.12).
- *       In any case, the other nodes shouldn't need time to process the
- *       modifying op before responding to the ping request. The ping request is
- *       sent after the op is sent, so it should also be received after the op
- *       is received.
- */
-static gboolean
-digest_timer_cb(void *data)
-{
-    xmlNode *ping = NULL;
-
-    if (!based_get_local_node_dc()) {
-        // Only the DC sends a ping
-        return G_SOURCE_REMOVE;
-    }
-
-    if (++ping_seq < 0) {
-        ping_seq = 0;
-    }
-
-    g_clear_pointer(&ping_digest, free);
-    ping_modified_since = false;
-
-    ping = pcmk__xe_create(NULL, PCMK__XE_PING);
-    pcmk__xe_set(ping, PCMK__XA_T, PCMK__VALUE_CIB);
-    pcmk__xe_set(ping, PCMK__XA_CIB_OP, CRM_OP_PING);
-    pcmk__xe_set_ll(ping, PCMK__XA_CIB_PING_ID, ping_seq);
-    pcmk__xe_set(ping, PCMK_XA_CRM_FEATURE_SET, CRM_FEATURE_SET);
-
-    pcmk__trace("Requesting peer digests (%lld)", ping_seq);
-    pcmk__cluster_send_message(NULL, pcmk_ipc_based, ping);
-
-    pcmk__xml_free(ping);
-    return G_SOURCE_REMOVE;
 }
 
 /*!
@@ -542,11 +566,6 @@ based_perform_op_rw(xmlNode *request, const cib__operation_t *operation,
         ping_modified_since = true;
     }
 
-    if (digest_timer == NULL) {
-        digest_timer = mainloop_timer_add("based_digest_timer", 5000, false,
-                                          digest_timer_cb, NULL);
-    }
-
     mainloop_timer_start(digest_timer);
 
 done:
@@ -811,36 +830,4 @@ done:
 
     pcmk__xml_free(reply);
     return rc;
-}
-
-/*!
- * \internal
- * \brief Close remote sockets, free the global CIB and quit
- *
- * \param[in] exit_status  Exit code
- */
-void
-based_terminate(crm_exit_t exit_status)
-{
-    based_ipc_cleanup();
-    based_remote_cleanup();
-
-    g_clear_pointer(&digest_timer, mainloop_timer_del);
-    g_clear_pointer(&ping_digest, free);
-    g_clear_pointer(&based_cib, pcmk__xml_free);
-
-    // Exit immediately on error
-    if (exit_status != CRM_EX_OK) {
-        crm_exit(exit_status);
-        return;
-    }
-
-    based_cluster_disconnect();
-
-    if ((mainloop != NULL) && g_main_loop_is_running(mainloop)) {
-        g_main_loop_quit(mainloop);
-        return;
-    }
-
-    crm_exit(CRM_EX_OK);
 }

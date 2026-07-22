@@ -23,7 +23,7 @@
 #include <corosync/cmap.h>          // cmap_*
 #include <corosync/corotypes.h>     // cs_*, CS_*
 #include <corosync/quorum.h>        // quorum_*
-#include <glib.h>                   // gboolean, gpointer, g_*, G_PRIORITY_HIGH
+#include <glib.h>                   // gboolean, g_*, G_PRIORITY_HIGH
 #include <libxml/tree.h>            // xmlNode
 #include <qb/qblog.h>               // QB_XS
 
