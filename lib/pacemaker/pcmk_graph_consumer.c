@@ -575,7 +575,7 @@ unpack_action(pcmk__graph_synapse_t *parent, xmlNode *xml_action)
         return NULL;
     }
 
-    pcmk__scan_min_int(value, &(action->id), -1);
+    pcmk__scan_min_int(value, &action->id, -1);
     action->type = pcmk__rsc_graph_action;
     action->xml = pcmk__xml_copy(NULL, xml_action);
     action->synapse = parent;
@@ -583,7 +583,7 @@ unpack_action(pcmk__graph_synapse_t *parent, xmlNode *xml_action)
     action->params = xml2list(action->xml);
 
     value = crm_meta_value(action->params, PCMK_META_TIMEOUT);
-    pcmk__scan_min_int(value, &(action->timeout), 0);
+    pcmk__scan_min_int(value, &action->timeout, 0);
 
     /* Take PCMK_META_START_DELAY into account for the timeout of the action
      * timer
@@ -597,7 +597,7 @@ unpack_action(pcmk__graph_synapse_t *parent, xmlNode *xml_action)
     }
 
     if (pcmk__uint_from_hash(action->params, CRM_META "_" PCMK_META_INTERVAL,
-                             0, &(action->interval_ms)) != pcmk_rc_ok) {
+                             0, &action->interval_ms) != pcmk_rc_ok) {
         action->interval_ms = 0;
     }
 
@@ -629,10 +629,10 @@ unpack_synapse(pcmk__graph_t *new_graph, const xmlNode *xml_synapse)
         return NULL;
     }
 
-    pcmk__scan_min_int(pcmk__xe_id(xml_synapse), &(new_synapse->id), 0);
+    pcmk__scan_min_int(pcmk__xe_id(xml_synapse), &new_synapse->id, 0);
 
     value = pcmk__xe_get(xml_synapse, PCMK__XA_PRIORITY);
-    pcmk__scan_min_int(value, &(new_synapse->priority), 0);
+    pcmk__scan_min_int(value, &new_synapse->priority, 0);
 
     CRM_CHECK(new_synapse->id >= 0,
               free_graph_synapse((void *) new_synapse); return NULL);
@@ -749,37 +749,37 @@ pcmk__unpack_graph(const xmlNode *xml_graph, const char *reference)
 
         CRM_CHECK(buf != NULL,
                   pcmk__free_graph(new_graph); return NULL);
-        pcmk__scan_min_int(buf, &(new_graph->id), 1);
+        pcmk__scan_min_int(buf, &new_graph->id, 1);
 
         buf = pcmk__xe_get(xml_graph, PCMK_OPT_CLUSTER_DELAY);
         CRM_CHECK(buf != NULL,
                   pcmk__free_graph(new_graph); return NULL);
-        pcmk_parse_interval_spec(buf, &(new_graph->network_delay));
+        pcmk_parse_interval_spec(buf, &new_graph->network_delay);
 
         buf = pcmk__xe_get(xml_graph, PCMK_OPT_FENCING_TIMEOUT);
         if (buf == NULL) {
             new_graph->fencing_timeout = new_graph->network_delay;
         } else {
-            pcmk_parse_interval_spec(buf, &(new_graph->fencing_timeout));
+            pcmk_parse_interval_spec(buf, &new_graph->fencing_timeout);
         }
 
         // Use 0 (dynamic limit) as default/invalid, -1 (no limit) as minimum
         buf = pcmk__xe_get(xml_graph, PCMK_OPT_BATCH_LIMIT);
         if ((buf == NULL)
-            || (pcmk__scan_min_int(buf, &(new_graph->batch_limit),
+            || (pcmk__scan_min_int(buf, &new_graph->batch_limit,
                                    -1) != pcmk_rc_ok)) {
             new_graph->batch_limit = 0;
         }
 
         buf = pcmk__xe_get(xml_graph, PCMK_OPT_MIGRATION_LIMIT);
-        pcmk__scan_min_int(buf, &(new_graph->migration_limit), -1);
+        pcmk__scan_min_int(buf, &new_graph->migration_limit, -1);
 
         new_graph->failed_stop_offset =
             pcmk__xe_get_copy(xml_graph, PCMK__XA_FAILED_STOP_OFFSET);
         new_graph->failed_start_offset =
             pcmk__xe_get_copy(xml_graph, PCMK__XA_FAILED_START_OFFSET);
 
-        pcmk__xe_get_time(xml_graph, "recheck-by", &(new_graph->recheck_by));
+        pcmk__xe_get_time(xml_graph, "recheck-by", &new_graph->recheck_by);
     }
 
     // Unpack each child <synapse> element

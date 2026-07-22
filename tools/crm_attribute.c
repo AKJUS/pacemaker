@@ -707,12 +707,12 @@ build_arg_context(pcmk__common_args_t *args, GOptionGroup **group) {
     GOptionContext *context = NULL;
 
     GOptionEntry extra_prog_entries[] = {
-        { "quiet", 'q', 0, G_OPTION_ARG_NONE, &(args->quiet),
+        { "quiet", 'q', 0, G_OPTION_ARG_NONE, &args->quiet,
           "Print only the value on stdout",
           NULL },
 
         // NOTE: resource-agents <4.2.0 (2018-10-24) uses -Q
-        { "quiet", 'Q', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &(args->quiet),
+        { "quiet", 'Q', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &args->quiet,
           NULL, NULL
         },
 

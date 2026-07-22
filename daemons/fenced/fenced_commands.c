@@ -541,12 +541,12 @@ create_async_command(xmlNode *msg)
         return NULL;
     }
 
-    pcmk__xe_get_int(msg, PCMK__XA_ST_CALLID, &(cmd->id));
-    pcmk__xe_get_int(msg, PCMK__XA_ST_DELAY, &(cmd->start_delay));
-    pcmk__xe_get_int(msg, PCMK__XA_ST_TIMEOUT, &(cmd->default_timeout));
+    pcmk__xe_get_int(msg, PCMK__XA_ST_CALLID, &cmd->id);
+    pcmk__xe_get_int(msg, PCMK__XA_ST_DELAY, &cmd->start_delay);
+    pcmk__xe_get_int(msg, PCMK__XA_ST_TIMEOUT, &cmd->default_timeout);
     cmd->timeout = cmd->default_timeout;
 
-    rc = pcmk__xe_get_flags(msg, PCMK__XA_ST_CALLOPT, &(cmd->options),
+    rc = pcmk__xe_get_flags(msg, PCMK__XA_ST_CALLOPT, &cmd->options,
                             st_opt_none);
     if (rc != pcmk_rc_ok) {
         pcmk__warn("Couldn't parse options from request: %s", pcmk_rc_str(rc));
@@ -1179,7 +1179,7 @@ build_device_from_xml(const xmlNode *dev)
     }
 
     value = g_hash_table_lookup(device->params, PCMK_FENCING_HOST_MAP);
-    device->aliases = build_port_aliases(value, &(device->targets));
+    device->aliases = build_port_aliases(value, &device->targets);
 
     value = target_list_type(device);
     if (!pcmk__str_eq(value, PCMK_VALUE_STATIC_LIST, pcmk__str_casei)

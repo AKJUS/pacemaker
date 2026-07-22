@@ -640,7 +640,7 @@ write_attribute(attribute_t *a, bool ignore_delay)
         set_alert_attribute_value(alert_attribute_value, v);
 
         // Save this value so we can log it when write completes
-        pcmk__str_update(&(v->requested), v->current);
+        pcmk__str_update(&v->requested, v->current);
     }
 
     if (private_updates) {

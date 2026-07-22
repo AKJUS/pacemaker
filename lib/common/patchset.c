@@ -539,7 +539,7 @@ pcmk__xml_patchset_versions(const xmlNode *patchset, int source[3],
     for (int i = 0; i < PCMK__NELEM(vfields); i++) {
         if (source_xml != NULL) {
             if (pcmk__xe_get_int(source_xml, vfields[i],
-                                 &(source[i])) != pcmk_rc_ok) {
+                                 &source[i]) != pcmk_rc_ok) {
                 return EINVAL;
             }
             pcmk__trace("Got source[%s]=%d", vfields[i], source[i]);
@@ -551,7 +551,7 @@ pcmk__xml_patchset_versions(const xmlNode *patchset, int source[3],
 
         if (target_xml != NULL) {
             if (pcmk__xe_get_int(target_xml, vfields[i],
-                                 &(target[i])) != pcmk_rc_ok) {
+                                 &target[i]) != pcmk_rc_ok) {
                 return EINVAL;
             }
             pcmk__trace("Got target[%s]=%d", vfields[i], target[i]);
@@ -588,8 +588,7 @@ check_patchset_versions(const xmlNode *cib_root, const xmlNode *patchset)
          * Preserve behavior for xml_apply_patchset(). Use new behavior in a
          * future replacement.
          */
-        if (pcmk__xe_get_int(cib_root, vfields[i],
-                             &(current[i])) == pcmk_rc_ok) {
+        if (pcmk__xe_get_int(cib_root, vfields[i], &current[i]) == pcmk_rc_ok) {
             pcmk__trace("Got %d for current[%s]%s", current[i], vfields[i],
                         ((current[i] < 0)? ", using 0" : ""));
         } else {
@@ -1160,14 +1159,14 @@ xml_patch_versions(const xmlNode *patchset, int add[3], int del[3])
 
     if (source != NULL) {
         for (int i = 0; i < PCMK__NELEM(vfields); i++) {
-            pcmk__xe_get_int(source, vfields[i], &(del[i]));
+            pcmk__xe_get_int(source, vfields[i], &del[i]);
             pcmk__trace("Got %d for del[%s]", del[i], vfields[i]);
         }
     }
 
     if (target != NULL) {
         for (int i = 0; i < PCMK__NELEM(vfields); i++) {
-            pcmk__xe_get_int(target, vfields[i], &(add[i]));
+            pcmk__xe_get_int(target, vfields[i], &add[i]);
             pcmk__trace("Got %d for add[%s]", add[i], vfields[i]);
         }
     }

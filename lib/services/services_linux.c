@@ -57,13 +57,13 @@ struct sigchld_data_s {
 static bool
 sigchld_setup(struct sigchld_data_s *data)
 {
-    sigemptyset(&(data->mask));
-    sigaddset(&(data->mask), SIGCHLD);
+    sigemptyset(&data->mask);
+    sigaddset(&data->mask, SIGCHLD);
 
-    sigemptyset(&(data->old_mask));
+    sigemptyset(&data->old_mask);
 
     // Block SIGCHLD (saving previous set of blocked signals to restore later)
-    if (sigprocmask(SIG_BLOCK, &(data->mask), &(data->old_mask)) < 0) {
+    if (sigprocmask(SIG_BLOCK, &data->mask, &data->old_mask) < 0) {
         pcmk__info("Wait for child process completion failed: %s "
                    QB_XS " source=sigprocmask",
                    pcmk_rc_str(errno));
@@ -83,7 +83,7 @@ sigchld_open(struct sigchld_data_s *data)
 
     CRM_CHECK(data != NULL, return -1);
 
-    fd = signalfd(-1, &(data->mask), SFD_NONBLOCK);
+    fd = signalfd(-1, &data->mask, SFD_NONBLOCK);
     if (fd < 0) {
         pcmk__info("Wait for child process completion failed: %s "
                    QB_XS " source=signalfd",
@@ -139,8 +139,8 @@ static void
 sigchld_cleanup(struct sigchld_data_s *data)
 {
     // Restore the original set of blocked signals
-    if ((sigismember(&(data->old_mask), SIGCHLD) == 0)
-        && (sigprocmask(SIG_UNBLOCK, &(data->mask), NULL) < 0)) {
+    if ((sigismember(&data->old_mask, SIGCHLD) == 0)
+        && (sigprocmask(SIG_UNBLOCK, &data->mask, NULL) < 0)) {
         pcmk__warn("Could not clean up after child process completion: %s",
                    pcmk_rc_str(errno));
     }
@@ -207,8 +207,8 @@ sigchld_setup(struct sigchld_data_s *data)
     // Set SIGCHLD handler
     data->sa.sa_handler = (sighandler_t) sigchld_handler;
     data->sa.sa_flags = 0;
-    sigemptyset(&(data->sa.sa_mask));
-    if (sigaction(SIGCHLD, &(data->sa), &(data->old_sa)) < 0) {
+    sigemptyset(&data->sa.sa_mask);
+    if (sigaction(SIGCHLD, &data->sa, &data->old_sa) < 0) {
         pcmk__info("Wait for child process completion failed: %s "
                    QB_XS " source=sigaction",
                    pcmk_rc_str(errno));
@@ -252,7 +252,7 @@ static void
 sigchld_cleanup(struct sigchld_data_s *data)
 {
     // Restore the previous SIGCHLD handler
-    if (sigaction(SIGCHLD, &(data->old_sa), NULL) < 0) {
+    if (sigaction(SIGCHLD, &data->old_sa, NULL) < 0) {
         pcmk__warn("Could not clean up after child process completion: %s",
                    pcmk_rc_str(errno));
     }
@@ -631,10 +631,10 @@ finish_op_output(svc_action_t *op, bool is_stderr)
     int fd;
 
     if (is_stderr) {
-        source = &(op->opaque->stderr_gsource);
+        source = &op->opaque->stderr_gsource;
         fd = op->opaque->stderr_fd;
     } else {
-        source = &(op->opaque->stdout_gsource);
+        source = &op->opaque->stdout_gsource;
         fd = op->opaque->stdout_fd;
     }
 

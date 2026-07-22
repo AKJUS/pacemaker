@@ -149,7 +149,7 @@ check_next_subdaemon(void *user_data)
 {
     static int next_child = 0;
 
-    pcmkd_child_t *child = &(pcmk_children[next_child]);
+    pcmkd_child_t *child = &pcmk_children[next_child];
     const char *name = pcmk__server_name(child->server);
     const long long pid = PCMK__SPECIAL_PID_AS_0(child->pid);
     int rc = child_liveness(child);
@@ -361,7 +361,7 @@ pcmk_shutdown_worker(void *user_data)
     }
 
     for (; phase >= 0; phase--) {
-        pcmkd_child_t *child = &(pcmk_children[phase]);
+        pcmkd_child_t *child = &pcmk_children[phase];
         const char *name = pcmk__server_name(child->server);
         time_t now = 0;
 

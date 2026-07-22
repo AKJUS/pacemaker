@@ -436,7 +436,7 @@ parse_election_message(const xmlNode *message, struct vote *vote)
     vote->version = pcmk__xe_get(message, PCMK_XA_VERSION);
     vote->election_owner = pcmk__xe_get(message, PCMK__XA_ELECTION_OWNER);
 
-    pcmk__xe_get_int(message, PCMK__XA_ELECTION_ID, &(vote->election_id));
+    pcmk__xe_get_int(message, PCMK__XA_ELECTION_ID, &vote->election_id);
 
     if ((vote->op == NULL) || (vote->from == NULL) || (vote->version == NULL)
         || (vote->election_owner == NULL) || (vote->election_id < 0)) {
@@ -455,7 +455,7 @@ parse_election_message(const xmlNode *message, struct vote *vote)
          */
         if ((pcmk__xe_get_timeval(message, PCMK__XA_ELECTION_AGE_SEC,
                                   PCMK__XA_ELECTION_AGE_NANO_SEC,
-                                  &(vote->age)) != pcmk_rc_ok)
+                                  &vote->age) != pcmk_rc_ok)
             || (vote->age.tv_sec < 0) || (vote->age.tv_usec < 0)) {
 
             pcmk__warn("Cannot count election %s from %s because uptime is "
@@ -705,7 +705,7 @@ election_count_vote(pcmk_cluster_t *cluster, const xmlNode *message,
         } else {
             char *loss_time = NULL;
 
-            loss_time = ctime(&(cluster->priv->election->last_election_loss));
+            loss_time = ctime(&cluster->priv->election->last_election_loss);
             if (loss_time) {
                 // Show only HH:MM:SS
                 loss_time += 11;

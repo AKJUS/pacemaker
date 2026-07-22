@@ -1583,7 +1583,7 @@ pcmk__xe_get_timeval(const xmlNode *xml, const char *sec_attr,
     // No bounds checking; see comment in pcmk__xe_get_time()
 
     // Parse seconds
-    rc = pcmk__xe_get_time(xml, sec_attr, &(result.tv_sec));
+    rc = pcmk__xe_get_time(xml, sec_attr, &result.tv_sec);
     if (rc != pcmk_rc_ok) {
         return rc;
     }

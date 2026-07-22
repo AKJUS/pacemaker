@@ -471,7 +471,7 @@ cib_tls_signon(cib_t *cib, pcmk__remote_t *connection, gboolean event_channel)
     connection->tcp_socket = -1;
     connection->tls_session = NULL;
     rc = pcmk__connect_remote(private->server, private->port, 0, NULL,
-                              &(connection->tcp_socket), NULL, NULL);
+                              &connection->tcp_socket, NULL, NULL);
     if (rc != pcmk_rc_ok) {
         pcmk__info("Remote connection to %s:%d failed: %s " QB_XS " rc=%d",
                    private->server, private->port, pcmk_rc_str(rc), rc);
@@ -584,9 +584,9 @@ cib_remote_signon(cib_t *cib, const char *name, enum cib_conn_type type)
             /* If no pcmk__output_t is set, just assume that a text prompt
              * is good enough.
              */
-            pcmk__text_prompt("Password", false, &(private->passwd));
+            pcmk__text_prompt("Password", false, &private->passwd);
         } else {
-            private->out->prompt("Password", false, &(private->passwd));
+            private->out->prompt("Password", false, &private->passwd);
         }
     }
 
@@ -595,12 +595,12 @@ cib_remote_signon(cib_t *cib, const char *name, enum cib_conn_type type)
         goto done;
     }
 
-    rc = cib_tls_signon(cib, &(private->command), FALSE);
+    rc = cib_tls_signon(cib, &private->command, false);
     if (rc != pcmk_ok) {
         goto done;
     }
 
-    rc = cib_tls_signon(cib, &(private->callback), TRUE);
+    rc = cib_tls_signon(cib, &private->callback, true);
 
 done:
     if (rc == pcmk_ok) {

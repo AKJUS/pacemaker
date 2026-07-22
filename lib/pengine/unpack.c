@@ -278,7 +278,7 @@ unpack_config(xmlNode *config, pcmk_scheduler_t *scheduler)
                  scheduler);
 
     value = pcmk__cluster_option(config_hash, PCMK_OPT_FENCING_TIMEOUT);
-    pcmk_parse_interval_spec(value, &(scheduler->priv->fence_timeout_ms));
+    pcmk_parse_interval_spec(value, &scheduler->priv->fence_timeout_ms);
 
     pcmk__debug("Default fencing action timeout: %s",
                 pcmk__readable_interval(scheduler->priv->fence_timeout_ms));
@@ -309,7 +309,7 @@ unpack_config(xmlNode *config, pcmk_scheduler_t *scheduler)
 
     value = pcmk__cluster_option(config_hash, PCMK_OPT_PRIORITY_FENCING_DELAY);
     if (value) {
-        unsigned int *delay_ms = &(scheduler->priv->priority_fencing_ms);
+        unsigned int *delay_ms = &scheduler->priv->priority_fencing_ms;
 
         pcmk_parse_interval_spec(value, delay_ms);
         pcmk__trace("Priority fencing delay is %s",
@@ -442,7 +442,7 @@ unpack_config(xmlNode *config, pcmk_scheduler_t *scheduler)
                     pcmk__sched_shutdown_lock);
     if (pcmk__is_set(scheduler->flags, pcmk__sched_shutdown_lock)) {
         value = pcmk__cluster_option(config_hash, PCMK_OPT_SHUTDOWN_LOCK_LIMIT);
-        pcmk_parse_interval_spec(value, &(scheduler->priv->shutdown_lock_ms));
+        pcmk_parse_interval_spec(value, &scheduler->priv->shutdown_lock_ms);
         pcmk__trace("Resources will be locked to nodes that were cleanly "
                     "shut down (locks expire after %s)",
                     pcmk__readable_interval(scheduler->priv->shutdown_lock_ms));
@@ -452,7 +452,7 @@ unpack_config(xmlNode *config, pcmk_scheduler_t *scheduler)
     }
 
     value = pcmk__cluster_option(config_hash, PCMK_OPT_NODE_PENDING_TIMEOUT);
-    pcmk_parse_interval_spec(value, &(scheduler->priv->node_pending_ms));
+    pcmk_parse_interval_spec(value, &scheduler->priv->node_pending_ms);
     if (scheduler->priv->node_pending_ms == 0U) {
         pcmk__trace("Do not fence pending nodes");
     } else {
@@ -2332,7 +2332,7 @@ unpack_find_resource(pcmk_scheduler_t *scheduler, const pcmk_node_t *node,
 
         const bool removed = pcmk__is_set(rsc->flags, pcmk__rsc_removed);
 
-        pcmk__str_update(&(rsc->priv->history_id), rsc_id);
+        pcmk__str_update(&rsc->priv->history_id, rsc_id);
         pcmk__rsc_debug(rsc, "Internally renamed %s on %s to %s%s",
                         rsc_id, pcmk__node_name(node), rsc->id,
                         (removed? " (removed)" : ""));
@@ -4526,7 +4526,7 @@ static int
 unpack_action_result(struct action_history *history)
 {
     if ((pcmk__xe_get_int(history->xml, PCMK__XA_OP_STATUS,
-                          &(history->execution_status)) != pcmk_rc_ok)
+                          &history->execution_status) != pcmk_rc_ok)
         || (history->execution_status < PCMK_EXEC_PENDING)
         || (history->execution_status > PCMK_EXEC_MAX)
         || (history->execution_status == PCMK_EXEC_CANCELLED)) {
@@ -4539,7 +4539,7 @@ unpack_action_result(struct action_history *history)
         return pcmk_rc_unpack_error;
     }
     if ((pcmk__xe_get_int(history->xml, PCMK__XA_RC_CODE,
-                          &(history->exit_status)) != pcmk_rc_ok)
+                          &history->exit_status) != pcmk_rc_ok)
         || (history->exit_status < 0) || (history->exit_status > CRM_EX_MAX)) {
         pcmk__config_err("Ignoring resource history entry %s for %s on %s "
                          "with invalid " PCMK__XA_RC_CODE " '%s'",
@@ -4799,7 +4799,7 @@ unpack_rsc_op(pcmk_resource_t *rsc, pcmk_node_t *node, xmlNode *xml_op,
                          history.id, rsc->id, pcmk__node_name(node));
         return;
     }
-    pcmk__xe_get_uint(xml_op, PCMK_META_INTERVAL, &(history.interval_ms));
+    pcmk__xe_get_uint(xml_op, PCMK_META_INTERVAL, &history.interval_ms);
     if (!can_affect_state(&history)) {
         pcmk__rsc_trace(rsc,
                         "Ignoring resource history entry %s for %s on %s "
@@ -4815,7 +4815,7 @@ unpack_rsc_op(pcmk_resource_t *rsc, pcmk_node_t *node, xmlNode *xml_op,
 
     history.expected_exit_status = pe__target_rc_from_xml(xml_op);
     history.key = pcmk__xe_history_key(xml_op);
-    pcmk__xe_get_int(xml_op, PCMK__XA_CALL_ID, &(history.call_id));
+    pcmk__xe_get_int(xml_op, PCMK__XA_CALL_ID, &history.call_id);
 
     pcmk__rsc_trace(rsc, "Unpacking %s (%s call %d on %s): %s (%s)",
                     history.id, history.task, history.call_id,

@@ -408,7 +408,7 @@ pcmk_poll_ipc(const pcmk_ipc_api_t *api, int timeout_ms)
         return EINVAL;
     }
 
-    rc = pcmk__ipc_fd(api->ipc, &(pollfd.fd));
+    rc = pcmk__ipc_fd(api->ipc, &pollfd.fd);
     if (rc != pcmk_rc_ok) {
         pcmk__debug("Could not obtain file descriptor for %s IPC: %s",
                     pcmk_ipc_name(api, true), pcmk_rc_str(rc));
@@ -470,7 +470,7 @@ connect_with_main_loop(pcmk_ipc_api_t *api)
     };
 
     rc = pcmk__add_mainloop_ipc(api->ipc, G_PRIORITY_DEFAULT, api,
-                                &callbacks, &(api->mainloop_io));
+                                &callbacks, &api->mainloop_io);
     if (rc != pcmk_rc_ok) {
         return rc;
     }
@@ -1119,7 +1119,7 @@ crm_ipc_ready(crm_ipc_t *client)
     }
 
     client->pfd.revents = 0;
-    rc = poll(&(client->pfd), 1, 0);
+    rc = poll(&client->pfd, 1, 0);
     return (rc < 0)? -errno : rc;
 }
 
@@ -1729,7 +1729,7 @@ pcmk__ipc_is_authentic_process_active(const char *name, uid_t refuid,
     struct pollfd pollfd = { 0, };
     int poll_rc;
 
-    c = qb_ipcc_connect_async(name, 0, &(pollfd.fd));
+    c = qb_ipcc_connect_async(name, 0, &pollfd.fd);
 #else
     c = qb_ipcc_connect(name, 0);
 #endif

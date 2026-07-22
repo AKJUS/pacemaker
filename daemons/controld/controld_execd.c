@@ -559,12 +559,12 @@ build_active_RAs(lrm_state_t * lrm_state, xmlNode * rsc_list)
                 pcmk__xe_set(xml_rsc, PCMK__META_CONTAINER, container);
             }
         }
-        controld_add_resource_history_xml(xml_rsc, &(entry->rsc), entry->failed,
+        controld_add_resource_history_xml(xml_rsc, &entry->rsc, entry->failed,
                                           lrm_state->node_name);
-        controld_add_resource_history_xml(xml_rsc, &(entry->rsc), entry->last,
+        controld_add_resource_history_xml(xml_rsc, &entry->rsc, entry->last,
                                           lrm_state->node_name);
         for (gIter = entry->recurring_op_list; gIter != NULL; gIter = gIter->next) {
-            controld_add_resource_history_xml(xml_rsc, &(entry->rsc), gIter->data,
+            controld_add_resource_history_xml(xml_rsc, &entry->rsc, gIter->data,
                                               lrm_state->node_name);
         }
     }
@@ -1627,7 +1627,7 @@ construct_op(const lrm_state_t *lrm_state, const xmlNode *rsc_op,
     pcmk__scan_min_int(op_timeout, &op->timeout, 0);
 
     if (pcmk__uint_from_hash(params, CRM_META "_" PCMK_META_INTERVAL, 0,
-                             &(op->interval_ms)) != pcmk_rc_ok) {
+                             &op->interval_ms) != pcmk_rc_ok) {
         op->interval_ms = 0;
     }
 
@@ -2017,7 +2017,7 @@ do_lrm_rsc_op(lrm_state_t *lrm_state, lrmd_rsc_info_t *rsc, xmlNode *msg,
         pending->rsc_id = pcmk__str_copy(rsc->id);
         pending->start_time = time(NULL);
         pending->user_data = pcmk__str_copy(op->user_data);
-        pcmk__xe_get_time(msg, PCMK_OPT_SHUTDOWN_LOCK, &(pending->lock_time));
+        pcmk__xe_get_time(msg, PCMK_OPT_SHUTDOWN_LOCK, &pending->lock_time);
         g_hash_table_replace(lrm_state->active_ops, call_id_s, pending);
 
         if ((op->interval_ms > 0)

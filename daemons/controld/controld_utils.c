@@ -1,5 +1,5 @@
 /*
- * Copyright 2004-2025 the Pacemaker project contributors
+ * Copyright 2004-2026 the Pacemaker project contributors
  *
  * The version control history for this file may have further details.
  *
@@ -693,8 +693,8 @@ update_dc(xmlNode * msg)
     }
 
     controld_globals.dc_name = NULL;    // freed as last_dc
-    pcmk__str_update(&(controld_globals.dc_name), welcome_from);
-    pcmk__str_update(&(controld_globals.dc_version), dc_version);
+    pcmk__str_update(&controld_globals.dc_name, welcome_from);
+    pcmk__str_update(&controld_globals.dc_version, dc_version);
 
     if (pcmk__str_eq(controld_globals.dc_name, last_dc, pcmk__str_casei)) {
         /* do nothing */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2025 the Pacemaker project contributors
+ * Copyright 2012-2026 the Pacemaker project contributors
  *
  * The version control history for this file may have further details.
  *
@@ -171,7 +171,7 @@ int
 services__ocf_prepare(svc_action_t *op)
 {
     if (!services__ocf_agent_exists(op->provider, op->agent,
-                                    &(op->opaque->exec))) {
+                                    &op->opaque->exec)) {
         return ENOENT;
     }
 

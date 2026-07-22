@@ -1272,7 +1272,7 @@ lrmd_tls_connect(lrmd_t * lrmd, int *fd)
 
     native->sock = -1;
     rc = pcmk__connect_remote(native->server, native->port, 0, NULL,
-                              &(native->sock), NULL, NULL);
+                              &native->sock, NULL, NULL);
     if (rc != pcmk_rc_ok) {
         pcmk__warn("Pacemaker Remote connection to %s:%d failed: %s "
                    QB_XS " rc=%d",
@@ -1546,7 +1546,7 @@ lrmd_tls_connect_async(lrmd_t *lrmd, int timeout)
 
     native->sock = -1;
     rc = pcmk__connect_remote(native->server, native->port, timeout, &timer_id,
-                              &(native->sock), lrmd, lrmd_tcp_connect_cb);
+                              &native->sock, lrmd, lrmd_tcp_connect_cb);
     if (rc != pcmk_rc_ok) {
         pcmk__warn("Pacemaker Remote connection to %s:%d failed: %s "
                    QB_XS " rc=%d",

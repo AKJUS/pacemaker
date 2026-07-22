@@ -1179,10 +1179,10 @@ create_remote_stonith_op(const char *client, xmlNode *request, gboolean peer)
 
     op = pcmk__assert_alloc(1, sizeof(remote_fencing_op_t));
 
-    pcmk__xe_get_int(request, PCMK__XA_ST_TIMEOUT, &(op->base_timeout));
+    pcmk__xe_get_int(request, PCMK__XA_ST_TIMEOUT, &op->base_timeout);
 
     // Value -1 means disable any static/random fencing delays
-    pcmk__xe_get_int(request, PCMK__XA_ST_DELAY, &(op->client_delay));
+    pcmk__xe_get_int(request, PCMK__XA_ST_DELAY, &op->client_delay);
 
     if (peer) {
         op->id = pcmk__xe_get_copy(dev, PCMK__XA_ST_REMOTE_OP);
@@ -1230,14 +1230,14 @@ create_remote_stonith_op(const char *client, xmlNode *request, gboolean peer)
     // @TODO Figure out how to avoid copying XML here
     op->request = pcmk__xml_copy(NULL, request);
 
-    rc = pcmk__xe_get_flags(request, PCMK__XA_ST_CALLOPT, &(op->call_options),
+    rc = pcmk__xe_get_flags(request, PCMK__XA_ST_CALLOPT, &op->call_options,
                             0U);
     if (rc != pcmk_rc_ok) {
         pcmk__warn("Couldn't parse options from request %s: %s", op->id,
                    pcmk_rc_str(rc));
     }
 
-    pcmk__xe_get_int(request, PCMK__XA_ST_CALLID, &(op->client_callid));
+    pcmk__xe_get_int(request, PCMK__XA_ST_CALLID, &op->client_callid);
 
     pcmk__trace("%s new fencing op %s ('%s' targeting %s for client %s, base "
                 "timeout %ds, %u %s expected)",
@@ -1259,7 +1259,7 @@ create_remote_stonith_op(const char *client, xmlNode *request, gboolean peer)
         stonith__clear_call_options(op->call_options, op->id, st_opt_cs_nodeid);
 
         if ((node != NULL) && (node->name != NULL)) {
-            pcmk__str_update(&(op->target), node->name);
+            pcmk__str_update(&op->target, node->name);
 
         } else {
             pcmk__warn("Could not expand nodeid '%s' into a host name",
@@ -2259,7 +2259,7 @@ add_device_properties(const xmlNode *xml, remote_fencing_op_t *op,
 
     // Nodes <2.1.5 won't set this, so assume unfencing in that case
     rc = pcmk__xe_get_flags(xml, PCMK__XA_ST_DEVICE_SUPPORT_FLAGS,
-                            &(props->device_support_flags),
+                            &props->device_support_flags,
                             fenced_df_supports_on);
     if (rc != pcmk_rc_ok) {
         pcmk__warn("Couldn't determine device support for %s "

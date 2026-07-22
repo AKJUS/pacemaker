@@ -148,7 +148,7 @@ cib__get_operation(const char *op, const cib__operation_t **operation)
         operation_table = pcmk__strkey_table(NULL, NULL);
 
         for (int lpc = 0; lpc < PCMK__NELEM(cib_ops); lpc++) {
-            const cib__operation_t *oper = &(cib_ops[lpc]);
+            const cib__operation_t *oper = &cib_ops[lpc];
 
             g_hash_table_insert(operation_table, (void *) oper->name,
                                 (void *) oper);

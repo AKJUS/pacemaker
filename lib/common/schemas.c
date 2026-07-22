@@ -164,9 +164,11 @@ version_from_filename(const char *filename, pcmk__schema_version_t *version)
     }
 
     if (g_str_has_suffix(filename, ".rng")) {
-        return sscanf(filename, "pacemaker-%hhu.%hhu.rng", &(version->v[0]), &(version->v[1])) == 2;
+        return sscanf(filename, "pacemaker-%hhu.%hhu.rng", &version->v[0],
+                      &version->v[1]) == 2;
     } else {
-        return sscanf(filename, "pacemaker-%hhu.%hhu", &(version->v[0]), &(version->v[1])) == 2;
+        return sscanf(filename, "pacemaker-%hhu.%hhu", &version->v[0],
+                      &version->v[1]) == 2;
     }
 }
 
@@ -389,7 +391,7 @@ load_transforms_from_dir(const char *dir)
         unsigned char order = 0;  // Placeholder only
 
         if (sscanf(namelist[i]->d_name, "upgrade-%hhu.%hhu-%hhu.xsl",
-                   &(version.v[0]), &(version.v[1]), &order) == 3) {
+                   &version.v[0], &version.v[1], &order) == 3) {
 
             char *version_s = pcmk__assert_asprintf("%hhu.%hhu",
                                                     version.v[0], version.v[1]);
@@ -771,7 +773,7 @@ validate_with(xmlDoc *doc, pcmk__schema_t *schema,
                 schema->validator);
     switch (schema->validator) {
         case pcmk__schema_validator_rng:
-            cache = (relaxng_ctx_cache_t **) &(schema->cache);
+            cache = (relaxng_ctx_cache_t **) &schema->cache;
             valid = validate_with_relaxng(doc, error_handler,
                                           error_handler_context, file, cache);
             break;

@@ -859,7 +859,7 @@ process_unit_method_reply(DBusMessage *reply, svc_action_t *op)
         if (!op->synchronous && start_stop) {
             // Should be set to unknown/pending already
             services__set_result(op, PCMK_OCF_UNKNOWN, PCMK_EXEC_PENDING, NULL);
-            pcmk__str_update(&(op->opaque->job_path), path);
+            pcmk__str_update(&op->opaque->job_path, path);
 
         } else {
             services__set_result(op, PCMK_OCF_OK, PCMK_EXEC_DONE, NULL);
