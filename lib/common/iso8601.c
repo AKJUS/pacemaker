@@ -1909,7 +1909,13 @@ crm_time_add_months(crm_time_t *dt, int value)
 void
 crm_time_add_minutes(crm_time_t *dt, int value)
 {
-    pcmk__time_add_seconds(dt, value * SECONDS_IN_MINUTE);
+    for (; value > 0; value--) {
+        pcmk__time_add_seconds(dt, SECONDS_IN_MINUTE);
+    }
+
+    for (; value < 0; value++) {
+        pcmk__time_add_seconds(dt, -SECONDS_IN_MINUTE);
+    }
 }
 
 void
