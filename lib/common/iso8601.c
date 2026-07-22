@@ -1418,8 +1418,13 @@ pcmk__set_time_if_earlier(crm_time_t *target, const crm_time_t *source)
 crm_time_t *
 pcmk_copy_time(const crm_time_t *source)
 {
-    crm_time_t *target = pcmk__assert_alloc(1, sizeof(crm_time_t));
+    crm_time_t *target = NULL;
 
+    if (source == NULL) {
+        return NULL;
+    }
+
+    target = pcmk__assert_alloc(1, sizeof(crm_time_t));
     *target = *source;
     return target;
 }
