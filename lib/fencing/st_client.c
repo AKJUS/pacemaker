@@ -196,7 +196,9 @@ stonith__watchdog_fencing_enabled_for_node_api(stonith_t *st, const char *node)
         /* caveat!!!
          * this might fail when the fencer is just updating the device-list
          * probably something we should fix as well for other api-calls */
-        int rc = stonith_api->cmds->list(stonith_api, st_opt_sync_call, STONITH_WATCHDOG_ID, &list, 0);
+        int rc = stonith_api->cmds->list(stonith_api, st_opt_sync_call,
+                                         STONITH_WATCHDOG_ID, &list, 0);
+
         if ((rc != pcmk_ok) || (list == NULL)) {
             /* due to the race described above it can happen that
              * we drop in here - so as not to make remote nodes
@@ -205,19 +207,25 @@ stonith__watchdog_fencing_enabled_for_node_api(stonith_t *st, const char *node)
             if (rc == -ENODEV) {
                 pcmk__notice("Cluster does not have watchdog fencing "
                              "device");
+
             } else {
                 pcmk__warn("Could not check for watchdog fencing device: %s",
                            pcmk_strerror(rc));
             }
+
         } else if (list[0] == '\0') {
             enabled = true;
+
         } else {
             GList *targets = stonith__parse_targets(list);
+
             enabled = pcmk__str_in_list(node, targets, pcmk__str_casei);
             g_list_free_full(targets, free);
         }
+
         free(list);
-        if (!st) {
+
+        if (st == NULL) {
             /* if we're provided the api we still might have done the
              * connection - but let's assume the caller won't bother
              */
@@ -225,7 +233,7 @@ stonith__watchdog_fencing_enabled_for_node_api(stonith_t *st, const char *node)
         }
     }
 
-    if (!st) {
+    if (st == NULL) {
         stonith__api_free(stonith_api);
     }
 
