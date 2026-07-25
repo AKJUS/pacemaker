@@ -189,8 +189,8 @@ stonith__watchdog_fencing_enabled_for_node_api(stonith_t *st, const char *node)
         rc = stonith_api->cmds->connect(stonith_api, "stonith-api", NULL);
 
         if (rc != pcmk_ok) {
-            pcmk__err("Failed connecting to Stonith-API for "
-                      "watchdog-fencing-query");
+            pcmk__err("Failed to connect to fencer API for watchdog query: %s",
+                      pcmk_strerror(rc));
             goto done;
         }
     }
@@ -207,7 +207,7 @@ stonith__watchdog_fencing_enabled_for_node_api(stonith_t *st, const char *node)
          * panic on that answer
          */
         if (rc == -ENODEV) {
-            pcmk__notice("Cluster does not have watchdog fencing device");
+            pcmk__debug("Cluster does not have watchdog fencing device");
 
         } else {
             pcmk__warn("Could not check for watchdog fencing device: %s",
@@ -234,8 +234,6 @@ done:
         stonith__api_free(stonith_api);
     }
 
-    pcmk__trace("Pacemaker assumes node %s %sto do watchdog-fencing", node,
-                (enabled? "" : "not "));
     return enabled;
 }
 
