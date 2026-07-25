@@ -176,10 +176,10 @@ get_namespace_from_agent(const char *agent)
     return st_namespace_invalid;
 }
 
-gboolean
+bool
 stonith__watchdog_fencing_enabled_for_node_api(stonith_t *st, const char *node)
 {
-    gboolean rv = FALSE;
+    bool rv = false;
     stonith_t *stonith_api = (st != NULL)? st : stonith__api_new();
     char *list = NULL;
 
@@ -211,7 +211,7 @@ stonith__watchdog_fencing_enabled_for_node_api(stonith_t *st, const char *node)
                                pcmk_strerror(rc));
                 }
             } else if (list[0] == '\0') {
-                rv = TRUE;
+                rv = true;
             } else {
                 GList *targets = stonith__parse_targets(list);
                 rv = pcmk__str_in_list(node, targets, pcmk__str_casei);
@@ -237,7 +237,7 @@ stonith__watchdog_fencing_enabled_for_node_api(stonith_t *st, const char *node)
     return rv;
 }
 
-gboolean
+bool
 stonith__watchdog_fencing_enabled_for_node(const char *node)
 {
     return stonith__watchdog_fencing_enabled_for_node_api(NULL, node);
