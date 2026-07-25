@@ -223,17 +223,11 @@ stonith__watchdog_fencing_enabled_for_node_api(stonith_t *st, const char *node)
         g_list_free_full(targets, free);
     }
 
-    if (st == NULL) {
-        /* if we're provided the api we still might have done the
-         * connection - but let's assume the caller won't bother
-         */
-        stonith_api->cmds->disconnect(stonith_api);
-    }
-
 done:
     free(list);
 
     if (st == NULL) {
+        stonith_api->cmds->disconnect(stonith_api);
         stonith__api_free(stonith_api);
     }
 
