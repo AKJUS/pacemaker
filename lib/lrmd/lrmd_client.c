@@ -1955,10 +1955,6 @@ list_stonith_agents(lrmd_list_t **resources)
     stonith_key_value_t *stonith_resources = NULL;
     stonith_key_value_t *dIter = NULL;
 
-    if (stonith_api == NULL) {
-        pcmk__err("Could not list fence agents: API memory allocation failed");
-        return -ENOMEM;
-    }
     stonith_api->cmds->list_agents(stonith_api, st_opt_sync_call, NULL,
                                    &stonith_resources, 0);
     stonith_api->cmds->free(stonith_api);
@@ -2110,12 +2106,6 @@ stonith_get_metadata(const char *type, char **output)
 {
     int rc = pcmk_ok;
     stonith_t *stonith_api = stonith__api_new();
-
-    if (stonith_api == NULL) {
-        pcmk__err("Could not get fence agent meta-data: API memory allocation "
-                  "failed");
-        return -ENOMEM;
-    }
 
     rc = stonith_api->cmds->metadata(stonith_api, st_opt_sync_call, type, NULL,
                                      output, 0);

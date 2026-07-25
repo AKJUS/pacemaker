@@ -183,55 +183,52 @@ stonith__watchdog_fencing_enabled_for_node_api(stonith_t *st, const char *node)
     stonith_t *stonith_api = (st != NULL)? st : stonith__api_new();
     char *list = NULL;
 
-    if(stonith_api) {
-        if (stonith_api->state == stonith_disconnected) {
-            int rc = stonith_api->cmds->connect(stonith_api, "stonith-api", NULL);
+    if (stonith_api->state == stonith_disconnected) {
+        int rc = stonith_api->cmds->connect(stonith_api, "stonith-api", NULL);
 
-            if (rc != pcmk_ok) {
-                pcmk__err("Failed connecting to Stonith-API for "
-                          "watchdog-fencing-query");
-            }
+        if (rc != pcmk_ok) {
+            pcmk__err("Failed connecting to Stonith-API for "
+                      "watchdog-fencing-query");
         }
-
-        if (stonith_api->state != stonith_disconnected) {
-            /* caveat!!!
-             * this might fail when the fencer is just updating the device-list
-             * probably something we should fix as well for other api-calls */
-            int rc = stonith_api->cmds->list(stonith_api, st_opt_sync_call, STONITH_WATCHDOG_ID, &list, 0);
-            if ((rc != pcmk_ok) || (list == NULL)) {
-                /* due to the race described above it can happen that
-                 * we drop in here - so as not to make remote nodes
-                 * panic on that answer
-                 */
-                if (rc == -ENODEV) {
-                    pcmk__notice("Cluster does not have watchdog fencing "
-                                 "device");
-                } else {
-                    pcmk__warn("Could not check for watchdog fencing device: %s",
-                               pcmk_strerror(rc));
-                }
-            } else if (list[0] == '\0') {
-                rv = true;
-            } else {
-                GList *targets = stonith__parse_targets(list);
-                rv = pcmk__str_in_list(node, targets, pcmk__str_casei);
-                g_list_free_full(targets, free);
-            }
-            free(list);
-            if (!st) {
-                /* if we're provided the api we still might have done the
-                 * connection - but let's assume the caller won't bother
-                 */
-                stonith_api->cmds->disconnect(stonith_api);
-            }
-        }
-
-        if (!st) {
-            stonith__api_free(stonith_api);
-        }
-    } else {
-        pcmk__err("Stonith-API for watchdog-fencing-query couldn't be created");
     }
+
+    if (stonith_api->state != stonith_disconnected) {
+        /* caveat!!!
+         * this might fail when the fencer is just updating the device-list
+         * probably something we should fix as well for other api-calls */
+        int rc = stonith_api->cmds->list(stonith_api, st_opt_sync_call, STONITH_WATCHDOG_ID, &list, 0);
+        if ((rc != pcmk_ok) || (list == NULL)) {
+            /* due to the race described above it can happen that
+             * we drop in here - so as not to make remote nodes
+             * panic on that answer
+             */
+            if (rc == -ENODEV) {
+                pcmk__notice("Cluster does not have watchdog fencing "
+                             "device");
+            } else {
+                pcmk__warn("Could not check for watchdog fencing device: %s",
+                           pcmk_strerror(rc));
+            }
+        } else if (list[0] == '\0') {
+            rv = true;
+        } else {
+            GList *targets = stonith__parse_targets(list);
+            rv = pcmk__str_in_list(node, targets, pcmk__str_casei);
+            g_list_free_full(targets, free);
+        }
+        free(list);
+        if (!st) {
+            /* if we're provided the api we still might have done the
+             * connection - but let's assume the caller won't bother
+             */
+            stonith_api->cmds->disconnect(stonith_api);
+        }
+    }
+
+    if (!st) {
+        stonith__api_free(stonith_api);
+    }
+
     pcmk__trace("Pacemaker assumes node %s %sto do watchdog-fencing", node,
                 (rv? "" : "not "));
     return rv;
@@ -2105,11 +2102,6 @@ stonith_api_kick(uint32_t nodeid, const char *uname, int timeout, bool off)
     const char *action = off? PCMK_ACTION_OFF : PCMK_ACTION_REBOOT;
 
     api_log_open();
-    if (st == NULL) {
-        api_log(LOG_ERR, "API initialization failed, could not kick (%s) node %u/%s",
-                action, nodeid, uname);
-        return -EPROTO;
-    }
 
     rc = st->cmds->connect(st, "stonith-api", NULL);
     if (rc != pcmk_ok) {
@@ -2146,12 +2138,6 @@ stonith_api_time(uint32_t nodeid, const char *uname, bool in_progress)
     time_t when = 0;
     stonith_t *st = stonith__api_new();
     stonith_history_t *history = NULL, *hp = NULL;
-
-    if (st == NULL) {
-        api_log(LOG_ERR, "Could not retrieve fence history for %u/%s: "
-                "API initialization failed", nodeid, uname);
-        return when;
-    }
 
     rc = st->cmds->connect(st, "stonith-api", NULL);
     if (rc != pcmk_ok) {
@@ -2224,10 +2210,6 @@ stonith__agent_exists(const char *name)
     }
 
     stonith_api = stonith__api_new();
-    if (stonith_api == NULL) {
-        pcmk__err("Could not list fence agents: API memory allocation failed");
-        return false;
-    }
 
     // The list_agents method ignores its timeout argument
     stonith_api->cmds->list_agents(stonith_api, st_opt_sync_call, NULL, &agents,

@@ -76,11 +76,6 @@ execd_get_fencer_connection(void)
         int rc = pcmk_ok;
 
         fencer_api = stonith__api_new();
-        if (fencer_api == NULL) {
-            pcmk__err("Could not connect to fencer: API memory allocation "
-                      "failed");
-            return NULL;
-        }
 
         rc = stonith__api_connect_retry(fencer_api, crm_system_name, 10);
         if (rc != pcmk_rc_ok) {

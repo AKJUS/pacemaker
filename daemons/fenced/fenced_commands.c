@@ -1033,12 +1033,6 @@ get_agent_metadata(const char *agent, xmlNode ** metadata)
 
     st = stonith__api_new();
 
-    if (st == NULL) {
-        pcmk__warn("Could not get agent meta-data: API memory allocation "
-                   "failed");
-        return EAGAIN;
-    }
-
     rc = st->cmds->metadata(st, st_opt_sync_call, agent, NULL, &buffer, 10);
     stonith__api_free(st);
 
