@@ -183,6 +183,7 @@ stonith__watchdog_fencing_enabled_for_node_api(stonith_t *st, const char *node)
     int rc = pcmk_ok;
     bool enabled = false;
     char *list = NULL;
+    GList *targets = NULL;
 
     if (stonith_api->state == stonith_disconnected) {
         rc = stonith_api->cmds->connect(stonith_api, "stonith-api", NULL);
@@ -213,18 +214,20 @@ stonith__watchdog_fencing_enabled_for_node_api(stonith_t *st, const char *node)
                        pcmk_strerror(rc));
         }
 
-    } else if (list[0] == '\0') {
-        enabled = true;
-
-    } else {
-        GList *targets = stonith__parse_targets(list);
-
-        enabled = pcmk__str_in_list(node, targets, pcmk__str_casei);
-        g_list_free_full(targets, free);
+        goto done;
     }
+
+    if (list[0] == '\0') {
+        enabled = true;
+        goto done;
+    }
+
+    targets = stonith__parse_targets(list);
+    enabled = pcmk__str_in_list(node, targets, pcmk__str_casei);
 
 done:
     free(list);
+    g_list_free_full(targets, free);
 
     if (st == NULL) {
         stonith_api->cmds->disconnect(stonith_api);
