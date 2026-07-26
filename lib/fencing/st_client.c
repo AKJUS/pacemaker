@@ -177,29 +177,21 @@ get_namespace_from_agent(const char *agent)
 }
 
 bool
-stonith__watchdog_fencing_enabled_for_node_api(stonith_t *st, const char *node)
+stonith__watchdog_fencing_enabled_for_node_api(stonith_t *stonith,
+                                               const char *node)
 {
-    stonith_t *stonith_api = (st != NULL)? st : stonith__api_new();
     int rc = pcmk_ok;
     bool enabled = false;
     char *list = NULL;
     GList *targets = NULL;
 
-    if (stonith_api->state == stonith_disconnected) {
-        rc = stonith_api->cmds->connect(stonith_api, "stonith-api", NULL);
-
-        if (rc != pcmk_ok) {
-            pcmk__err("Failed to connect to fencer API for watchdog query: %s",
-                      pcmk_strerror(rc));
-            goto done;
-        }
-    }
+    pcmk__assert((stonith != NULL) && (stonith->state != stonith_disconnected));
 
     /* caveat!!!
      * this might fail when the fencer is just updating the device-list
      * probably something we should fix as well for other api-calls */
-    rc = stonith_api->cmds->list(stonith_api, st_opt_sync_call,
-                                 STONITH_WATCHDOG_ID, &list, 0);
+    rc = stonith->cmds->list(stonith, st_opt_sync_call, STONITH_WATCHDOG_ID,
+                             &list, 0);
 
     if ((rc != pcmk_ok) || (list == NULL)) {
         /* due to the race described above it can happen that
@@ -228,19 +220,29 @@ stonith__watchdog_fencing_enabled_for_node_api(stonith_t *st, const char *node)
 done:
     free(list);
     g_list_free_full(targets, free);
-
-    if (st == NULL) {
-        stonith_api->cmds->disconnect(stonith_api);
-        stonith__api_free(stonith_api);
-    }
-
     return enabled;
 }
 
 bool
 stonith__watchdog_fencing_enabled_for_node(const char *node)
 {
-    return stonith__watchdog_fencing_enabled_for_node_api(NULL, node);
+    stonith_t *stonith = stonith__api_new();
+    int rc = pcmk_ok;
+    bool enabled = false;
+
+    rc = stonith->cmds->connect(stonith, "stonith-api", NULL);
+    if (rc != pcmk_ok) {
+        pcmk__err("Failed to connect to fencer API for watchdog query: %s",
+                  pcmk_strerror(rc));
+        goto done;
+    }
+
+    enabled = stonith__watchdog_fencing_enabled_for_node_api(stonith, node);
+
+done:
+    stonith->cmds->disconnect(stonith);
+    stonith__api_free(stonith);
+    return enabled;
 }
 
 /* when cycling through the list we don't want to delete items
