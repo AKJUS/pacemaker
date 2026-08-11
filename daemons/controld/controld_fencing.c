@@ -654,11 +654,6 @@ controld_timer_fencer_connect(void *user_data)
 
     if (fencer_api == NULL) {
         fencer_api = stonith__api_new();
-        if (fencer_api == NULL) {
-            pcmk__err("Could not connect to fencer: API memory allocation "
-                      "failed");
-            return G_SOURCE_REMOVE;
-        }
     }
 
     if (fencer_api->state != stonith_disconnected) {
