@@ -2793,6 +2793,12 @@ reply_to_duplicates(async_command_t *cmd, const pcmk__action_result_t *result,
             continue;
         }
 
+        // Do not merge with an in-flight fencing action
+        if (cmd_other->activating_on != NULL
+            || cmd_other->active_on != NULL) {
+            continue;
+        }
+
         /* A pending operation matches if:
          * 1. The client connections are different.
          * 2. The target is the same.
